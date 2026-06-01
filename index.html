@@ -9,85 +9,225 @@
 <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
   :root {
-    --bg: #0f0f14; --surface: #1a1a24; --surface2: #232330;
-    --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.15);
-    --text: #e8e6f0; --text2: #8b8aa0; --text3: #55536a;
-    --accent: #7f77dd; --accent2: #5dcaa5; --warn: #ef9f27;
+    --bg: #0f0f14;
+    --surface: #1a1a24;
+    --surface2: #232330;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.15);
+    --text: #e8e6f0;
+    --text2: #8b8aa0;
+    --text3: #55536a;
+    --accent: #7f77dd;
+    --accent2: #5dcaa5;
+    --warn: #ef9f27;
     --danger: #e24b4a;
   }
-  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
-  header { border-bottom: 1px solid var(--border); padding: 1.5rem 2rem; display: flex; align-items: center; gap: 1rem; }
-  header .logo { font-family: 'Space Mono', monospace; font-size: 1.1rem; color: var(--accent); letter-spacing: -0.02em; }
-  header .logo span { color: var(--accent2); }
-  header p { font-size: 0.8rem; color: var(--text3); margin-top: 2px; }
-  main { max-width: 1300px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
 
-  .upload-zone { border: 1.5px dashed var(--border2); border-radius: 16px; padding: 3rem 2rem; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; margin-bottom: 1.5rem; position: relative; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 1.5rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  header .logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.1rem;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+  }
+  header .logo span { color: var(--accent2); }
+  header p {
+    font-size: 0.8rem;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+
+  main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 1.5px dashed var(--border2);
+    border-radius: 16px;
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    margin-bottom: 1.5rem;
+    position: relative;
+  }
   .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(127,119,221,0.06); }
   .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
   .upload-zone .icon { font-size: 3rem; margin-bottom: 0.75rem; display: block; }
   .upload-zone h2 { font-size: 1rem; font-weight: 500; margin-bottom: 0.5rem; }
   .upload-zone p { font-size: 0.85rem; color: var(--text2); }
-  .upload-zone .formats { display: inline-flex; gap: 8px; margin-top: 1rem; }
-  .badge { font-family: 'Space Mono', monospace; font-size: 0.7rem; padding: 3px 10px; border-radius: 20px; border: 1px solid; }
+  .upload-zone .formats {
+    display: inline-flex;
+    gap: 8px;
+    margin-top: 1rem;
+  }
+  .badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid;
+  }
   .badge.midi { color: var(--accent2); border-color: rgba(93,202,165,0.4); background: rgba(93,202,165,0.08); }
   .badge.mp3  { color: var(--warn); border-color: rgba(239,159,39,0.4); background: rgba(239,159,39,0.08); }
 
-  .warning { background: rgba(239,159,39,0.08); border: 1px solid rgba(239,159,39,0.3); border-radius: 10px; padding: 0.75rem 1.1rem; font-size: 0.82rem; color: var(--warn); margin-bottom: 1.5rem; display: none; align-items: flex-start; gap: 10px; }
+  /* Warning */
+  .warning {
+    background: rgba(239,159,39,0.08);
+    border: 1px solid rgba(239,159,39,0.3);
+    border-radius: 10px;
+    padding: 0.75rem 1.1rem;
+    font-size: 0.82rem;
+    color: var(--warn);
+    margin-bottom: 1.5rem;
+    display: none;
+    align-items: flex-start;
+    gap: 10px;
+  }
   .warning.show { display: flex; }
+  .warning .wi { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
 
-  .stats-row { display: none; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+  /* Stats */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 1.5rem;
+    display: none;
+  }
   .stats-row.show { display: grid; }
-  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1rem; text-align: center; }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem 1rem;
+    text-align: center;
+  }
   .stat-card .lbl { font-size: 0.72rem; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
   .stat-card .val { font-family: 'Space Mono', monospace; font-size: 2rem; font-weight: 700; }
   .stat-card.notes .val { color: var(--accent); }
   .stat-card.timers .val { color: var(--warn); }
   .stat-card.conns .val { color: var(--danger); }
-  .stat-card.pages .val { color: var(--accent2); }
 
-  /* Pagination controls */
-  .pagination { display: none; align-items: center; justify-content: space-between; margin-bottom: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0.75rem 1.1rem; }
-  .pagination.show { display: flex; }
-  .page-info { font-family: 'Space Mono', monospace; font-size: 0.85rem; color: var(--text2); }
-  .page-info strong { color: var(--accent); }
-  .page-btns { display: flex; gap: 8px; align-items: center; }
-  .page-btn { font-family: 'Inter', sans-serif; font-size: 0.78rem; padding: 5px 14px; border-radius: 8px; border: 1px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; transition: background .15s, color .15s; }
-  .page-btn:hover:not(:disabled) { background: var(--surface2); color: var(--text); }
-  .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-  .page-btn.active { border-color: rgba(127,119,221,0.5); color: var(--accent); background: rgba(127,119,221,0.1); }
-  .page-dots { color: var(--text3); font-size: 0.8rem; padding: 0 4px; }
-
-  .built-row { display: none; align-items: center; gap: 14px; margin-bottom: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0.85rem 1.1rem; }
-
-  .color-ref { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.2rem; margin-bottom: 1.5rem; display: none; }
-  .color-ref.show { display: block; }
-  .color-ref h4 { font-size: 0.75rem; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 0.75rem; }
-  .color-ref-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-  .cr-item { display: flex; align-items: center; gap: 5px; background: var(--surface2); border-radius: 8px; padding: 4px 8px; font-size: 0.72rem; color: var(--text2); }
-  .cr-dot { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; }
-
-  .schema-container { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
-  .schema-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.1rem; border-bottom: 1px solid var(--border); }
+  /* Schema */
+  .schema-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .schema-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.1rem;
+    border-bottom: 1px solid var(--border);
+  }
   .schema-toolbar h3 { font-size: 0.82rem; font-weight: 500; color: var(--text2); }
   .schema-toolbar .actions { display: flex; gap: 8px; }
-  button.btn { font-family: 'Inter', sans-serif; font-size: 0.78rem; padding: 5px 14px; border-radius: 8px; border: 1px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; transition: background .15s, color .15s; }
+  button.btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.78rem;
+    padding: 5px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
   button.btn:hover { background: var(--surface2); color: var(--text); }
   button.btn.primary { border-color: rgba(127,119,221,0.5); color: var(--accent); }
   button.btn.primary:hover { background: rgba(127,119,221,0.1); }
 
-  .schema-body { overflow: auto; padding: 1.5rem 1rem; min-height: 300px; max-height: 80vh; display: flex; align-items: flex-start; justify-content: flex-start; }
-  .empty { text-align: center; color: var(--text3); font-size: 0.88rem; }
+  .schema-body {
+    overflow: auto;
+    padding: 1.5rem 1rem;
+    min-height: 300px;
+    max-height: 80vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+  .empty {
+    text-align: center;
+    color: var(--text3);
+    font-size: 0.88rem;
+  }
   .empty .big { font-size: 2.5rem; display: block; margin-bottom: 0.5rem; }
 
-  .legend { padding: 1rem 1.1rem; border-top: 1px solid var(--border); display: none; flex-wrap: wrap; gap: 1rem; align-items: center; }
+  /* Legend */
+  .legend {
+    padding: 1rem 1.1rem;
+    border-top: 1px solid var(--border);
+    display: none;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+  }
   .legend.show { display: flex; }
-  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: var(--text2); }
+  .legend-section { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .legend-label { font-size: 0.72rem; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-right: 2px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: var(--text2); }
+  .ldot { border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.15); flex-shrink: 0; }
 
-  #tooltip { position: fixed; background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; padding: 6px 12px; font-size: 0.78rem; color: var(--text); pointer-events: none; opacity: 0; transition: opacity .1s; z-index: 100; }
+  /* Note tooltip */
+  #tooltip {
+    position: fixed;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    color: var(--text);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .1s;
+    z-index: 100;
+  }
   #tooltip.show { opacity: 1; }
+
+  /* Color reference strip */
+  .color-ref {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 1.5rem;
+    display: none;
+  }
+  .color-ref.show { display: block; }
+  .color-ref h4 { font-size: 0.75rem; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 0.75rem; }
+  .color-ref-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .cr-item {
+    display: flex; align-items: center; gap: 5px;
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: 0.72rem;
+    color: var(--text2);
+  }
+  .cr-dot {
+    width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+  }
 </style>
 </head>
 <body>
@@ -97,6 +237,7 @@
     <p>Build a Boat for Treasure — music to note schema converter</p>
   </div>
 </header>
+
 <main>
   <div class="upload-zone" id="dropZone">
     <input type="file" id="fileInput" accept=".mid,.midi,.mp3,.wav">
@@ -110,33 +251,39 @@
   </div>
 
   <div class="warning" id="mp3Warn">
-    <span style="font-size:1.1rem;flex-shrink:0;margin-top:1px">⚠️</span>
-    <div><strong>MP3/WAV has no note data.</strong> Note detection is approximate. Use a <strong>MIDI file</strong> for accurate results.</div>
+    <span class="wi">⚠️</span>
+    <div>
+      <strong>MP3/WAV has no note data.</strong> Note detection is approximate and may be inaccurate.
+      Use a <strong>MIDI file</strong> for accurate results.
+    </div>
   </div>
 
   <div class="stats-row" id="statsRow">
-    <div class="stat-card notes"><div class="lbl">Total notes</div><div class="val" id="statNotes">0</div></div>
-    <div class="stat-card timers"><div class="lbl">Total timers</div><div class="val" id="statTimers">0</div></div>
-    <div class="stat-card conns"><div class="lbl">Connections</div><div class="val" id="statConns">0</div></div>
-    <div class="stat-card pages"><div class="lbl">Pages</div><div class="val" id="statPages">0</div></div>
+    <div class="stat-card notes">
+      <div class="lbl">Total notes</div>
+      <div class="val" id="statNotes">0</div>
+    </div>
+    <div class="stat-card timers">
+      <div class="lbl">Timers</div>
+      <div class="val" id="statTimers">0</div>
+    </div>
+    <div class="stat-card conns">
+      <div class="lbl">Connections</div>
+      <div class="val" id="statConns">0</div>
+    </div>
   </div>
 
-  <div class="built-row" id="builtRow">
+  <div class="built-row" id="builtRow" style="display:none;align-items:center;gap:14px;margin-bottom:1rem;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0.85rem 1.1rem;">
     <span style="font-size:0.8rem;color:var(--text2);white-space:nowrap">Built:</span>
     <span style="font-family:'Space Mono',monospace;font-size:1.1rem;color:#1d9e75;font-weight:700" id="builtCount">0</span>
-    <span style="font-size:0.8rem;color:var(--text3)">of <span id="builtTotal">0</span> timers (all pages)</span>
+    <span style="font-size:0.8rem;color:var(--text3)">of <span id="builtTotal">0</span> timers</span>
     <div style="flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden">
       <div id="builtBar" style="height:100%;background:#1d9e75;border-radius:3px;width:0%;transition:width .3s"></div>
     </div>
-    <span style="font-size:0.75rem;color:var(--text3)">click ⭕ to mark</span>
+    <span style="font-size:0.75rem;color:var(--text3)">click ⭕ to mark as built</span>
   </div>
 
-  <!-- Pagination top -->
-  <div class="pagination" id="paginationTop">
-    <div class="page-info">Page <strong id="pageNumTop">1</strong> of <strong id="pageTotalTop">1</strong> &nbsp;·&nbsp; timers <strong id="pageRangeTop">1–128</strong></div>
-    <div class="page-btns" id="pageBtnsTop"></div>
-  </div>
-
+  <!-- Color reference strip -->
   <div class="color-ref" id="colorRef">
     <h4>Note colors (low → high, as in game)</h4>
     <div class="color-ref-row" id="colorRefRow"></div>
@@ -158,58 +305,82 @@
       <svg id="schemaSvg" style="display:none"></svg>
     </div>
     <div class="legend" id="legendWrap">
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <div class="legend-section">
         <span class="legend-label">Elements:</span>
         <div class="legend-item"><div style="width:20px;height:10px;background:#666;border-radius:2px;flex-shrink:0"></div>lever (start)</div>
         <div class="legend-item"><div style="width:18px;height:18px;border-radius:50%;border:2px solid var(--warn);flex-shrink:0"></div>timer (delay)</div>
         <div class="legend-item"><div style="width:24px;height:2px;background:var(--danger);flex-shrink:0"></div>connection</div>
       </div>
+      <div class="legend-section">
+        <span class="legend-label">Special:</span>
+        <div class="legend-item">
+          <div style="width:18px;height:18px;border-radius:50%;background:#c084fc;border:3px solid #111;flex-shrink:0"></div>
+          F# lowest (black border)
+        </div>
+        <div class="legend-item">
+          <div style="width:18px;height:18px;border-radius:50%;background:#c084fc;border:3px solid #dc2626;flex-shrink:0"></div>
+          F# highest (red border)
+        </div>
+        <div class="legend-item">
+          <div style="width:18px;height:18px;border-radius:50%;background:#c084fc;flex-shrink:0"></div>
+          F# middle (no border)
+        </div>
+      </div>
     </div>
-  </div>
-
-  <!-- Pagination bottom -->
-  <div class="pagination" id="paginationBot" style="margin-top:1rem;margin-bottom:0">
-    <div class="page-info">Page <strong id="pageNumBot">1</strong> of <strong id="pageTotalBot">1</strong> &nbsp;·&nbsp; timers <strong id="pageRangeBot">1–128</strong></div>
-    <div class="page-btns" id="pageBtnsBot"></div>
   </div>
 </main>
 
 <div id="tooltip"></div>
 
 <script>
+// ─────────────────────────────────────────────────────────────────────────────
+// BABFT note color map — exact colors from the in-game keyboard screenshot
+// The game has 25 notes: F#3 through F#5 (low to high)
+// Each MIDI number maps to a specific color.
+//
+// MIDI reference:
+//   F#3 = 54, G3=55, G#3=56, A3=57, A#3=58, B3=59,
+//   C4=60, C#4=61, D4=62, D#4=63, E4=64, F4=65,
+//   F#4=66, G4=67, G#4=68, A4=69, A#4=70, B4=71,
+//   C5=72, C#5=73, D5=74, D#5=75, E5=76, F5=77,
+//   F#5=78
+// ─────────────────────────────────────────────────────────────────────────────
 const GAME_NOTES = [
-  { midi: 54, name: 'F#3', color: '#c084fc', stroke: '#fff',    strokeW: 3 },
-  { midi: 55, name: 'G3',  color: '#e879a0', stroke: 'none',    strokeW: 0 },
-  { midi: 56, name: 'G#3', color: '#f97c7c', stroke: 'none',    strokeW: 0 },
-  { midi: 57, name: 'A3',  color: '#f9a86a', stroke: 'none',    strokeW: 0 },
-  { midi: 58, name: 'A#3', color: '#f5c842', stroke: 'none',    strokeW: 0 },
-  { midi: 59, name: 'B3',  color: '#e8e04a', stroke: 'none',    strokeW: 0 },
-  { midi: 60, name: 'C4',  color: '#b8e04a', stroke: 'none',    strokeW: 0 },
-  { midi: 61, name: 'C#4', color: '#7dd87a', stroke: 'none',    strokeW: 0 },
-  { midi: 62, name: 'D4',  color: '#4dd6a0', stroke: 'none',    strokeW: 0 },
-  { midi: 63, name: 'D#4', color: '#3dc87a', stroke: 'none',    strokeW: 0 },
-  { midi: 64, name: 'E4',  color: '#4dc8b8', stroke: 'none',    strokeW: 0 },
-  { midi: 65, name: 'F4',  color: '#a8d8c8', stroke: 'none',    strokeW: 0 },
-  { midi: 66, name: 'F#4', color: '#72e4c8', stroke: 'none',    strokeW: 0 },
-  { midi: 67, name: 'G4',  color: '#7ec8e8', stroke: 'none',    strokeW: 0 },
-  { midi: 68, name: 'G#4', color: '#5aaee8', stroke: 'none',    strokeW: 0 },
-  { midi: 69, name: 'A4',  color: '#5a90e8', stroke: 'none',    strokeW: 0 },
-  { midi: 70, name: 'A#4', color: '#60a8f8', stroke: 'none',    strokeW: 0 },
-  { midi: 71, name: 'B4',  color: '#7888e8', stroke: 'none',    strokeW: 0 },
-  { midi: 72, name: 'C5',  color: '#9090e8', stroke: 'none',    strokeW: 0 },
-  { midi: 73, name: 'C#5', color: '#a890e0', stroke: 'none',    strokeW: 0 },
-  { midi: 74, name: 'D5',  color: '#b890d8', stroke: 'none',    strokeW: 0 },
-  { midi: 75, name: 'D#5', color: '#c898d8', stroke: 'none',    strokeW: 0 },
-  { midi: 76, name: 'E5',  color: '#b880cc', stroke: 'none',    strokeW: 0 },
-  { midi: 77, name: 'F5',  color: '#9878d8', stroke: 'none',    strokeW: 0 },
-  { midi: 78, name: 'F#5', color: '#c084fc', stroke: '#dc2626', strokeW: 3 },
+  { midi: 54, name: 'F#3', color: '#c084fc', stroke: '#111',    strokeW: 3   }, // lowest F# — black border
+  { midi: 55, name: 'G3',  color: '#e879a0', stroke: 'none',    strokeW: 0   },
+  { midi: 56, name: 'G#3', color: '#f97c7c', stroke: 'none',    strokeW: 0   }, // coral/salmon
+  { midi: 57, name: 'A3',  color: '#f9a86a', stroke: 'none',    strokeW: 0   }, // peach-orange
+  { midi: 58, name: 'A#3', color: '#f5c842', stroke: 'none',    strokeW: 0   }, // yellow-orange
+  { midi: 59, name: 'B3',  color: '#e8e04a', stroke: 'none',    strokeW: 0   }, // yellow
+  { midi: 60, name: 'C4',  color: '#b8e04a', stroke: 'none',    strokeW: 0   }, // yellow-green
+  { midi: 61, name: 'C#4', color: '#7dd87a', stroke: 'none',    strokeW: 0   }, // light green
+  { midi: 62, name: 'D4',  color: '#4dd6a0', stroke: 'none',    strokeW: 0   }, // mint-green
+  { midi: 63, name: 'D#4', color: '#3dc87a', stroke: 'none',    strokeW: 0   }, // green
+  { midi: 64, name: 'E4',  color: '#4dc8b8', stroke: 'none',    strokeW: 0   }, // teal
+  { midi: 65, name: 'F4',  color: '#a8d8c8', stroke: 'none',    strokeW: 0   }, // light teal/beige
+  { midi: 66, name: 'F#4', color: '#72e4c8', stroke: 'none',    strokeW: 0   }, // mint (mid F#, no border)
+  { midi: 67, name: 'G4',  color: '#7ec8e8', stroke: 'none',    strokeW: 0   }, // light blue
+  { midi: 68, name: 'G#4', color: '#5aaee8', stroke: 'none',    strokeW: 0   }, // blue
+  { midi: 69, name: 'A4',  color: '#5a90e8', stroke: 'none',    strokeW: 0   }, // blue
+  { midi: 70, name: 'A#4', color: '#60a8f8', stroke: 'none',    strokeW: 0   }, // bright blue
+  { midi: 71, name: 'B4',  color: '#7888e8', stroke: 'none',    strokeW: 0   }, // blue-violet
+  { midi: 72, name: 'C5',  color: '#9090e8', stroke: 'none',    strokeW: 0   }, // violet
+  { midi: 73, name: 'C#5', color: '#a890e0', stroke: 'none',    strokeW: 0   }, // lavender
+  { midi: 74, name: 'D5',  color: '#b890d8', stroke: 'none',    strokeW: 0   }, // light purple
+  { midi: 75, name: 'D#5', color: '#c898d8', stroke: 'none',    strokeW: 0   }, // pastel purple
+  { midi: 76, name: 'E5',  color: '#b880cc', stroke: 'none',    strokeW: 0   }, // soft purple
+  { midi: 77, name: 'F5',  color: '#9878d8', stroke: 'none',    strokeW: 0   }, // purple-blue
+  { midi: 78, name: 'F#5', color: '#c084fc', stroke: '#dc2626', strokeW: 3   }, // highest F# — red border
 ];
 
+// Build lookup maps
 const MIDI_TO_GAME = {};
 GAME_NOTES.forEach(n => { MIDI_TO_GAME[n.midi] = n; });
 
+// For notes outside the 25-note range, find the closest game note
 function getGameNote(midiNum) {
   if (MIDI_TO_GAME[midiNum]) return MIDI_TO_GAME[midiNum];
+  // Find nearest
   let best = GAME_NOTES[0], bestDist = Math.abs(midiNum - GAME_NOTES[0].midi);
   for (const gn of GAME_NOTES) {
     const d = Math.abs(midiNum - gn.midi);
@@ -218,21 +389,38 @@ function getGameNote(midiNum) {
   return best;
 }
 
-// ── State ──────────────────────────────────────────────────────
-let allGroups = [];
-let currentPage = 1;
-const COLS_PER_ROW = 16;
-const ROWS_PER_PAGE = 8;
-const PAGE_SIZE = COLS_PER_ROW * ROWS_PER_PAGE; // 128
-// builtState[gi] = true/false across all groups
-const builtState = {};
+// Populate color reference strip
+function buildColorRef() {
+  const row = document.getElementById('colorRefRow');
+  row.innerHTML = '';
+  GAME_NOTES.forEach(gn => {
+    const item = document.createElement('div');
+    item.className = 'cr-item';
+    const dot = document.createElement('div');
+    dot.className = 'cr-dot';
+    dot.style.background = gn.color;
+    if (gn.strokeW > 0 && gn.stroke !== 'none') {
+      dot.style.border = `${gn.strokeW}px solid ${gn.stroke}`;
+    }
+    const lbl = document.createElement('span');
+    lbl.textContent = gn.name;
+    item.appendChild(dot);
+    item.appendChild(lbl);
+    row.appendChild(item);
+  });
+  document.getElementById('colorRef').classList.add('show');
+}
 
-// ── Upload ─────────────────────────────────────────────────────
+// Drop / file
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
+
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
-dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag'); const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag');
+  const f = e.dataTransfer.files[0]; if (f) handleFile(f);
+});
 fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
 
 function handleFile(file) {
@@ -240,8 +428,12 @@ function handleFile(file) {
   const isAudio = ext === 'mp3' || ext === 'wav';
   document.getElementById('mp3Warn').classList.toggle('show', isAudio);
   document.getElementById('schemaTitle').textContent = file.name;
+
   const reader = new FileReader();
-  reader.onload = ev => { if (!isAudio) parseMidi(ev.target.result); else simulateNotes(); };
+  reader.onload = ev => {
+    if (!isAudio) parseMidi(ev.target.result);
+    else simulateNotes();
+  };
   reader.readAsArrayBuffer(file);
 }
 
@@ -250,73 +442,66 @@ function parseMidi(buffer) {
     const midi = new Midi(buffer);
     let events = [];
     midi.tracks.forEach(track => {
-      track.notes.forEach(note => events.push({ time: note.time, duration: note.duration, midi: note.midi }));
+      track.notes.forEach(note => {
+        events.push({ time: note.time, duration: note.duration, midi: note.midi });
+      });
     });
     events.sort((a, b) => a.time - b.time);
     if (!events.length) { alert('No notes found in MIDI file'); return; }
-    processGroups(events);
+    buildSchema(events);
   } catch(e) { alert('Error reading MIDI: ' + e.message); }
 }
 
 function simulateNotes() {
+  // Demo notes using game's 25-note range
   const gameRange = GAME_NOTES.map(n => n.midi);
   const events = [];
   let t = 0;
-  for (let i = 0; i < 300; i++) {
+  for (let i = 0; i < 24; i++) {
     const midi = gameRange[Math.floor(Math.random() * gameRange.length)];
     events.push({ time: t, duration: 0.3 + Math.random() * 0.5, midi });
     t += 0.25 + Math.random() * 0.5;
   }
-  processGroups(events);
+  buildSchema(events);
 }
 
-function processGroups(events) {
-  allGroups = [];
+function updateBuiltCount() {
+  const total = document.querySelectorAll('[data-gi]').length;
+  const built = document.querySelectorAll('[data-built="1"]').length;
+  document.getElementById('builtCount').textContent = built;
+  document.getElementById('builtTotal').textContent = total;
+  document.getElementById('builtRow').style.display = total > 0 ? 'flex' : 'none';
+  const pct = total > 0 ? Math.round(built / total * 100) : 0;
+  document.getElementById('builtBar').style.width = pct + '%';
+}
+
+function buildSchema(events) {
+  // Group simultaneous notes (within 50ms)
+  const groups = [];
   let i = 0;
   while (i < events.length) {
     const t = events[i].time;
     const group = [];
     while (i < events.length && Math.abs(events[i].time - t) < 0.05) group.push(events[i++]);
-    allGroups.push({ time: t, notes: group });
+    groups.push({ time: t, notes: group });
   }
 
-  const totalPages = Math.ceil(allGroups.length / PAGE_SIZE);
-  // Stats
-  let totalNotes = 0;
-  allGroups.forEach(g => totalNotes += g.notes.length);
-  document.getElementById('statNotes').textContent = totalNotes;
-  document.getElementById('statTimers').textContent = allGroups.length;
-  document.getElementById('statPages').textContent = totalPages;
-  document.getElementById('statsRow').classList.add('show');
-  document.getElementById('legendWrap').classList.add('show');
-  document.getElementById('downloadBtn').style.display = 'inline-flex';
-  document.getElementById('emptyState').style.display = 'none';
-  document.getElementById('schemaSvg').style.display = 'block';
-  buildColorRef();
-  currentPage = 1;
-  renderPage(currentPage);
-}
+  const MAX_GROUPS = 120;
+  const shown = groups.slice(0, MAX_GROUPS);
 
-// ── Render a single page ───────────────────────────────────────
-function renderPage(page) {
-  currentPage = page;
-  const totalPages = Math.ceil(allGroups.length / PAGE_SIZE);
-  const startGi = (page - 1) * PAGE_SIZE;
-  const endGi   = Math.min(startGi + PAGE_SIZE, allGroups.length);
-  const shown   = allGroups.slice(startGi, endGi);
-
+  const COLS_PER_ROW = 16;
   const rows = Math.ceil(shown.length / COLS_PER_ROW);
 
-  const SVG_NS  = 'http://www.w3.org/2000/svg';
-  const svg     = document.getElementById('schemaSvg');
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('schemaSvg');
   svg.innerHTML = '';
 
-  const NOTE_SIZE  = 26;
-  const COL_W      = 72;
-  const ROW_H      = 180;
-  const PAD_L      = 60, PAD_T = 55;
-  const TIMER_R    = 20;
-  const LEVER_W    = 22, LEVER_H = 40;
+  const NOTE_SIZE = 26; // uniform size for all notes
+  const COL_W = 72;
+  const ROW_H = 180;
+  const PAD_L = 60, PAD_T = 55;
+  const TIMER_R = 20;
+  const LEVER_W = 22, LEVER_H = 40;
 
   const svgW = PAD_L + Math.min(shown.length, COLS_PER_ROW) * COL_W + 40;
   const svgH = PAD_T + rows * ROW_H + 20;
@@ -325,126 +510,143 @@ function renderPage(page) {
   svg.setAttribute('width', svgW);
   svg.setAttribute('height', svgH);
 
-  let pageConns = 0;
+  let totalNotes = 0;
+  let totalTimers = shown.length;
+  let totalConns = 0;
 
-  function timerPos(localIdx) {
-    const row = Math.floor(localIdx / COLS_PER_ROW);
-    const col = localIdx % COLS_PER_ROW;
-    return { x: PAD_L + col * COL_W + 24, y: PAD_T + row * ROW_H + TIMER_R };
+  function rowCol(gi) {
+    const row = Math.floor(gi / COLS_PER_ROW);
+    const col = gi % COLS_PER_ROW;
+    return { row, col };
+  }
+  function timerPos(gi) {
+    const { row, col } = rowCol(gi);
+    const x = PAD_L + col * COL_W + 24;
+    const y = PAD_T + row * ROW_H + TIMER_R;
+    return { x, y };
   }
 
-  // Lever
-  const leverX = PAD_L - 42, leverY = PAD_T - 8;
-  svg.appendChild(el(SVG_NS, 'rect', { x: leverX, y: leverY, width: LEVER_W, height: LEVER_H, rx: 5, fill: '#555', stroke: '#888', 'stroke-width': 1.5 }));
-  const leverLbl = el(SVG_NS, 'text', { x: leverX + LEVER_W/2, y: leverY + LEVER_H + 16, 'text-anchor': 'middle', 'font-size': 11, fill: '#666' });
+  // Lever at start of first row
+  const leverX = PAD_L - 42;
+  const leverY = PAD_T - 8;
+  const leverRect = el(SVG_NS, 'rect', {
+    x: leverX, y: leverY, width: LEVER_W, height: LEVER_H,
+    rx: 5, fill: '#555', stroke: '#888', 'stroke-width': 1.5
+  });
+  svg.appendChild(leverRect);
+  const leverLbl = el(SVG_NS, 'text', {
+    x: leverX + LEVER_W/2, y: leverY + LEVER_H + 16,
+    'text-anchor': 'middle', 'font-size': 11, fill: '#666'
+  });
   leverLbl.textContent = 'lever';
   svg.appendChild(leverLbl);
 
-  // Lever → first timer
+  // Lever to first timer
   const t0 = timerPos(0);
-  svg.appendChild(el(SVG_NS, 'line', { x1: leverX + LEVER_W, y1: leverY + LEVER_H/2, x2: t0.x - TIMER_R, y2: t0.y, stroke: '#e24b4a', 'stroke-width': 2, 'stroke-dasharray': '5 3' }));
-  pageConns++;
+  svg.appendChild(el(SVG_NS, 'line', {
+    x1: leverX + LEVER_W, y1: leverY + LEVER_H/2,
+    x2: t0.x - TIMER_R, y2: t0.y,
+    stroke: '#e24b4a', 'stroke-width': 2, 'stroke-dasharray': '5 3'
+  }));
+  totalConns++;
 
   let prevPos = null;
 
-  shown.forEach((group, localIdx) => {
-    const gi = startGi + localIdx; // global index
-    const pos = timerPos(localIdx);
+  shown.forEach((group, gi) => {
+    const pos = timerPos(gi);
+    const timeDiff = gi === 0 ? 0.1 : Math.max(0.05, Math.min(10, parseFloat((group.time - shown[gi-1].time).toFixed(2))));
 
-    // Compute delay: within page use actual time diff; at page boundary note it's continued
-    let timeDiff;
-    if (localIdx === 0 && page > 1) {
-      // First timer on page > 1: diff from last of previous page
-      const prevGroup = allGroups[startGi - 1];
-      timeDiff = Math.max(0.05, Math.min(10, parseFloat((group.time - prevGroup.time).toFixed(2))));
-    } else if (localIdx === 0) {
-      timeDiff = 0.1;
-    } else {
-      timeDiff = Math.max(0.05, Math.min(10, parseFloat((group.time - shown[localIdx-1].time).toFixed(2))));
-    }
-
-    // Connection line
+    // Connection from previous timer or row-wrap
     if (prevPos !== null) {
-      const prevRow = Math.floor((localIdx - 1) / COLS_PER_ROW);
-      const curRow  = Math.floor(localIdx / COLS_PER_ROW);
-      if (prevRow === curRow) {
-        svg.appendChild(el(SVG_NS, 'line', { x1: prevPos.x + TIMER_R, y1: prevPos.y, x2: pos.x - TIMER_R, y2: pos.y, stroke: '#e24b4a', 'stroke-width': 2 }));
+      const { row: pr } = rowCol(gi - 1);
+      const { row: cr } = rowCol(gi);
+      if (pr === cr) {
+        svg.appendChild(el(SVG_NS, 'line', {
+          x1: prevPos.x + TIMER_R, y1: prevPos.y,
+          x2: pos.x - TIMER_R, y2: pos.y,
+          stroke: '#e24b4a', 'stroke-width': 2
+        }));
       } else {
         const endX = PAD_L + (COLS_PER_ROW - 1) * COL_W + 24 + TIMER_R + 20;
         const midY = prevPos.y + ROW_H / 2;
         const path = `M ${prevPos.x + TIMER_R} ${prevPos.y} L ${endX} ${prevPos.y} L ${endX} ${midY} L ${PAD_L - 20} ${midY} L ${PAD_L - 20} ${pos.y} L ${pos.x - TIMER_R} ${pos.y}`;
         svg.appendChild(el(SVG_NS, 'path', { d: path, stroke: '#e24b4a', 'stroke-width': 2, fill: 'none', 'stroke-dasharray': '6 3' }));
       }
-      pageConns++;
+      totalConns++;
     }
 
-    // Timer circle
+    // Timer circle — clickable to mark as built
     const timerG = el(SVG_NS, 'g', { style: 'cursor:pointer', 'data-gi': gi });
-    const isBuilt = !!builtState[gi];
-    const ringColor  = isBuilt ? '#1d9e75' : '#ef9f27';
-    const ringWidth  = isBuilt ? 3 : 2.5;
-    const bgFill     = isBuilt ? 'rgba(29,158,117,0.12)' : 'transparent';
-    const txtColor   = isBuilt ? '#1d9e75' : '#ef9f27';
-
-    timerG.appendChild(el(SVG_NS, 'circle', { cx: pos.x, cy: pos.y, r: TIMER_R - 1, fill: bgFill, class: 'timer-bg' }));
-    timerG.appendChild(el(SVG_NS, 'circle', { cx: pos.x, cy: pos.y, r: TIMER_R, fill: 'none', stroke: ringColor, 'stroke-width': ringWidth, class: 'timer-ring' }));
-
-    const tTxt = el(SVG_NS, 'text', { x: pos.x, y: pos.y + 4, 'text-anchor': 'middle', 'font-size': 11, fill: txtColor, 'font-weight': '600', class: 'timer-txt' });
+    const tCirc = el(SVG_NS, 'circle', { cx: pos.x, cy: pos.y, r: TIMER_R, fill: 'none', stroke: '#ef9f27', 'stroke-width': 2.5, 'class': 'timer-ring' });
+    const tBg = el(SVG_NS, 'circle', { cx: pos.x, cy: pos.y, r: TIMER_R - 1, fill: 'transparent', 'class': 'timer-bg' });
+    const tTxt = el(SVG_NS, 'text', { x: pos.x, y: pos.y + 4, 'text-anchor': 'middle', 'font-size': 11, fill: '#ef9f27', 'font-weight': '600', 'class': 'timer-txt' });
     tTxt.textContent = timeDiff + 's';
-    timerG.appendChild(tTxt);
-
-    const tCheck = el(SVG_NS, 'text', { x: pos.x + TIMER_R - 6, y: pos.y - TIMER_R + 6, 'text-anchor': 'middle', 'font-size': 10, fill: '#1d9e75', class: 'timer-check', style: isBuilt ? '' : 'display:none' });
+    const tCheck = el(SVG_NS, 'text', { x: pos.x + TIMER_R - 6, y: pos.y - TIMER_R + 6, 'text-anchor': 'middle', 'font-size': 10, fill: '#1d9e75', 'class': 'timer-check', style: 'display:none' });
     tCheck.textContent = '✓';
+    timerG.appendChild(tBg);
+    timerG.appendChild(tCirc);
+    timerG.appendChild(tTxt);
     timerG.appendChild(tCheck);
-
-    // Global index label (small, top-left of timer)
-    const giLbl = el(SVG_NS, 'text', { x: pos.x - TIMER_R + 4, y: pos.y - TIMER_R + 10, 'text-anchor': 'start', 'font-size': 8, fill: '#44425a' });
-    giLbl.textContent = '#' + (gi + 1);
-    timerG.appendChild(giLbl);
-
     timerG.addEventListener('click', function() {
-      const gidx = parseInt(this.getAttribute('data-gi'));
-      const built = !!builtState[gidx];
-      builtState[gidx] = !built;
-      const ring  = this.querySelector('.timer-ring');
-      const bg    = this.querySelector('.timer-bg');
-      const txt   = this.querySelector('.timer-txt');
+      const built = this.getAttribute('data-built') === '1';
+      const ring = this.querySelector('.timer-ring');
+      const bg = this.querySelector('.timer-bg');
+      const txt = this.querySelector('.timer-txt');
       const check = this.querySelector('.timer-check');
       if (!built) {
-        ring.setAttribute('stroke', '#1d9e75'); ring.setAttribute('stroke-width', '3');
+        this.setAttribute('data-built', '1');
+        ring.setAttribute('stroke', '#1d9e75');
+        ring.setAttribute('stroke-width', '3');
         bg.setAttribute('fill', 'rgba(29,158,117,0.12)');
-        txt.setAttribute('fill', '#1d9e75'); check.style.display = '';
+        txt.setAttribute('fill', '#1d9e75');
+        check.style.display = '';
       } else {
-        ring.setAttribute('stroke', '#ef9f27'); ring.setAttribute('stroke-width', '2.5');
+        this.setAttribute('data-built', '0');
+        ring.setAttribute('stroke', '#ef9f27');
+        ring.setAttribute('stroke-width', '2.5');
         bg.setAttribute('fill', 'transparent');
-        txt.setAttribute('fill', '#ef9f27'); check.style.display = 'none';
+        txt.setAttribute('fill', '#ef9f27');
+        check.style.display = 'none';
       }
       updateBuiltCount();
     });
     svg.appendChild(timerG);
 
-    // Time label
+    // Time label above timer
     const tLbl = el(SVG_NS, 'text', { x: pos.x, y: pos.y - TIMER_R - 7, 'text-anchor': 'middle', 'font-size': 9, fill: '#44425a' });
     tLbl.textContent = group.time.toFixed(2) + 's';
     svg.appendChild(tLbl);
 
-    // Notes
+    // Notes below timer
     const maxNotesPerCol = 2;
     group.notes.forEach((note, ni) => {
       const gameNote = getGameNote(note.midi);
       const sz = NOTE_SIZE;
-      const col2 = ni % maxNotesPerCol;
+      const col = ni % maxNotesPerCol;
       const row2 = Math.floor(ni / maxNotesPerCol);
-      const totalCols2 = Math.min(group.notes.length, maxNotesPerCol);
-      const spreadX = (col2 - (totalCols2 - 1) / 2) * (sz + 8);
+      const totalCols = Math.min(group.notes.length, maxNotesPerCol);
+      const spreadX = (col - (totalCols - 1) / 2) * (sz + 8);
       const nx = pos.x + spreadX;
       const ny = pos.y + TIMER_R + 20 + row2 * (sz + 10);
 
-      svg.appendChild(el(SVG_NS, 'line', { x1: pos.x, y1: pos.y + TIMER_R, x2: nx, y2: ny - sz/2, stroke: '#e24b4a', 'stroke-width': 1.5, opacity: 0.7 }));
-      pageConns++;
+      // Red line timer → note
+      svg.appendChild(el(SVG_NS, 'line', {
+        x1: pos.x, y1: pos.y + TIMER_R,
+        x2: nx, y2: ny - sz/2,
+        stroke: '#e24b4a', 'stroke-width': 1.5, opacity: 0.7
+      }));
+      totalConns++;
 
+      // Note circle with exact game color
       const strokeColor = gameNote.stroke !== 'none' ? gameNote.stroke : 'none';
-      const nCirc = el(SVG_NS, 'circle', { cx: nx, cy: ny, r: sz/2, fill: gameNote.color, stroke: strokeColor, 'stroke-width': gameNote.strokeW });
+      const strokeWidth = gameNote.strokeW > 0 ? gameNote.strokeW : 0;
+
+      const nCirc = el(SVG_NS, 'circle', {
+        cx: nx, cy: ny, r: sz/2,
+        fill: gameNote.color,
+        stroke: strokeColor,
+        'stroke-width': strokeWidth
+      });
       nCirc.setAttribute('data-info', `${gameNote.name} | MIDI ${note.midi}`);
       nCirc.style.cursor = 'pointer';
       nCirc.addEventListener('mouseenter', showTooltip);
@@ -452,106 +654,65 @@ function renderPage(page) {
       nCirc.addEventListener('mousemove', moveTooltip);
       svg.appendChild(nCirc);
 
-      const nTxt = el(SVG_NS, 'text', { x: nx, y: ny + 4, 'text-anchor': 'middle', 'font-size': 9, fill: '#111', 'font-weight': '700' });
+      // Note name label inside circle
+      // Use dark text for light notes, white for dark notes
+      const lightNotes = [58, 59, 60, 61, 62, 63, 64, 65, 66]; // yellow-green range
+      const textFill = '#111';
+      const nTxt = el(SVG_NS, 'text', {
+        x: nx, y: ny + 4,
+        'text-anchor': 'middle', 'font-size': 9,
+        fill: textFill, 'font-weight': '700'
+      });
+      // Show just the note letter (no octave) to keep it compact
       nTxt.textContent = gameNote.name.replace(/\d/, '');
       svg.appendChild(nTxt);
+
+      totalNotes++;
     });
 
     prevPos = pos;
   });
 
-  // Stats
-  document.getElementById('statConns').textContent = pageConns;
-  updateBuiltCount();
-  updatePagination(page, totalPages, startGi, endGi);
-}
-
-// ── Pagination UI ──────────────────────────────────────────────
-function updatePagination(page, totalPages, startGi, endGi) {
-  if (totalPages <= 1) {
-    document.getElementById('paginationTop').classList.remove('show');
-    document.getElementById('paginationBot').classList.remove('show');
-    return;
+  if (groups.length > MAX_GROUPS) {
+    const note = el(SVG_NS, 'text', {
+      x: svgW - 10, y: svgH - 8,
+      'text-anchor': 'end', 'font-size': 11, fill: '#55536a'
+    });
+    note.textContent = `showing ${MAX_GROUPS} of ${groups.length} groups`;
+    svg.appendChild(note);
   }
-  document.getElementById('paginationTop').classList.add('show');
-  document.getElementById('paginationBot').classList.add('show');
 
-  const range = `${startGi + 1}–${endGi}`;
-  ['Top','Bot'].forEach(s => {
-    document.getElementById('pageNum'+s).textContent = page;
-    document.getElementById('pageTotal'+s).textContent = totalPages;
-    document.getElementById('pageRange'+s).textContent = range;
-    renderPageButtons(document.getElementById('pageBtns'+s), page, totalPages);
-  });
+  document.getElementById('statNotes').textContent = totalNotes;
+  document.getElementById('statTimers').textContent = totalTimers;
+  document.getElementById('statConns').textContent = totalConns;
+  document.getElementById('statsRow').classList.add('show');
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('schemaSvg').style.display = 'block';
+  document.getElementById('legendWrap').classList.add('show');
+  document.getElementById('downloadBtn').style.display = 'inline-flex';
+  buildColorRef();
+  updateBuiltCount();
 }
 
-function renderPageButtons(container, current, total) {
-  container.innerHTML = '';
-  const btn = (label, page, disabled, active) => {
-    const b = document.createElement('button');
-    b.className = 'page-btn' + (active ? ' active' : '');
-    b.textContent = label;
-    b.disabled = disabled;
-    if (!disabled) b.onclick = () => { renderPage(page); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-    return b;
-  };
-  const dot = () => { const s = document.createElement('span'); s.className = 'page-dots'; s.textContent = '…'; return s; };
-
-  container.appendChild(btn('← Prev', current - 1, current === 1, false));
-
-  // Page number buttons: show first, last, current ±1, with dots
-  const pages = new Set([1, total, current, current - 1, current + 1].filter(p => p >= 1 && p <= total));
-  const sorted = [...pages].sort((a, b) => a - b);
-  let prev = null;
-  sorted.forEach(p => {
-    if (prev !== null && p - prev > 1) container.appendChild(dot());
-    container.appendChild(btn(p, p, false, p === current));
-    prev = p;
-  });
-
-  container.appendChild(btn('Next →', current + 1, current === total, false));
-}
-
-// ── Built counter ──────────────────────────────────────────────
-function updateBuiltCount() {
-  const total = allGroups.length;
-  const built = Object.values(builtState).filter(Boolean).length;
-  document.getElementById('builtCount').textContent = built;
-  document.getElementById('builtTotal').textContent = total;
-  document.getElementById('builtRow').style.display = total > 0 ? 'flex' : 'none';
-  const pct = total > 0 ? Math.round(built / total * 100) : 0;
-  document.getElementById('builtBar').style.width = pct + '%';
-}
-
-// ── Helpers ────────────────────────────────────────────────────
 function el(ns, tag, attrs) {
   const e = document.createElementNS(ns, tag);
   Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
   return e;
 }
 
+// Tooltip
 const tooltip = document.getElementById('tooltip');
-function showTooltip(e) { tooltip.textContent = e.target.getAttribute('data-info'); tooltip.classList.add('show'); }
+function showTooltip(e) {
+  tooltip.textContent = e.target.getAttribute('data-info');
+  tooltip.classList.add('show');
+}
 function hideTooltip() { tooltip.classList.remove('show'); }
-function moveTooltip(e) { tooltip.style.left = (e.clientX + 14) + 'px'; tooltip.style.top = (e.clientY - 10) + 'px'; }
-
-function buildColorRef() {
-  const row = document.getElementById('colorRefRow');
-  row.innerHTML = '';
-  GAME_NOTES.forEach(gn => {
-    const item = document.createElement('div'); item.className = 'cr-item';
-    const dot = document.createElement('div'); dot.className = 'cr-dot';
-    dot.style.background = gn.color;
-    if (gn.strokeW > 0 && gn.stroke !== 'none') dot.style.border = `${gn.strokeW}px solid ${gn.stroke}`;
-    const lbl = document.createElement('span'); lbl.textContent = gn.name;
-    item.appendChild(dot); item.appendChild(lbl); row.appendChild(item);
-  });
-  document.getElementById('colorRef').classList.add('show');
+function moveTooltip(e) {
+  tooltip.style.left = (e.clientX + 14) + 'px';
+  tooltip.style.top = (e.clientY - 10) + 'px';
 }
 
 function resetAll() {
-  allGroups = [];
-  Object.keys(builtState).forEach(k => delete builtState[k]);
   document.getElementById('schemaSvg').style.display = 'none';
   document.getElementById('schemaSvg').innerHTML = '';
   document.getElementById('emptyState').style.display = 'block';
@@ -562,9 +723,6 @@ function resetAll() {
   document.getElementById('schemaTitle').textContent = 'Note schema';
   document.getElementById('fileInput').value = '';
   document.getElementById('colorRef').classList.remove('show');
-  document.getElementById('paginationTop').classList.remove('show');
-  document.getElementById('paginationBot').classList.remove('show');
-  document.getElementById('builtRow').style.display = 'none';
 }
 
 function downloadSVG() {
@@ -572,7 +730,7 @@ function downloadSVG() {
   const blob = new Blob([svg.outerHTML], { type: 'image/svg+xml' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `babft-notes-page${currentPage}.svg`;
+  a.download = 'babft-notes.svg';
   a.click();
 }
 </script>
