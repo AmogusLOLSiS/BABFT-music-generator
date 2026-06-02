@@ -655,15 +655,18 @@ function renderPage(page) {
     return { x: PAD_L + col * COL_W + 24, y: PAD_T + row * ROW_H + TIMER_R };
   }
 
-  const leverX = PAD_L - 42, leverY = PAD_T - 8;
-  svg.appendChild(el(SVG_NS, 'rect', { x: leverX, y: leverY, width: LEVER_W, height: LEVER_H, rx: 5, fill: '#555', stroke: '#888', 'stroke-width': 1.5 }));
-  const leverLbl = el(SVG_NS, 'text', { x: leverX + LEVER_W/2, y: leverY + LEVER_H + 16, 'text-anchor': 'middle', 'font-size': 11, fill: '#666' });
-  leverLbl.textContent = 'lever';
-  svg.appendChild(leverLbl);
-
   const t0 = timerPos(0);
-  svg.appendChild(el(SVG_NS, 'line', { x1: leverX + LEVER_W, y1: leverY + LEVER_H/2, x2: t0.x - TIMER_R, y2: t0.y, stroke: '#e24b4a', 'stroke-width': 2, 'stroke-dasharray': '5 3' }));
-  pageConns++;
+
+  if (page === 1) {
+    const leverX = PAD_L - 42, leverY = PAD_T - 8;
+    svg.appendChild(el(SVG_NS, 'rect', { x: leverX, y: leverY, width: LEVER_W, height: LEVER_H, rx: 5, fill: '#555', stroke: '#888', 'stroke-width': 1.5 }));
+    const leverLbl = el(SVG_NS, 'text', { x: leverX + LEVER_W/2, y: leverY + LEVER_H + 16, 'text-anchor': 'middle', 'font-size': 11, fill: '#666' });
+    leverLbl.textContent = 'lever';
+    svg.appendChild(leverLbl);
+
+    svg.appendChild(el(SVG_NS, 'line', { x1: leverX + LEVER_W, y1: leverY + LEVER_H/2, x2: t0.x - TIMER_R, y2: t0.y, stroke: '#e24b4a', 'stroke-width': 2, 'stroke-dasharray': '5 3' }));
+    pageConns++;
+  }
 
   let prevPos = null;
 
