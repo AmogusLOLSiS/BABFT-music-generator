@@ -585,41 +585,6 @@ function generateBuildContent() {
   return lines.join('\n');
 }
 
-  // Пишемо [BINDING] секції
-  // Знаходимо ID попереднього контролера для кожного Delay
-  // Delay[0] → BindWait від Switch (але Switch не генеруємо, тому пропускаємо першу)
-  // Delay[gi] → BindWait від Delay[gi-1]
-  // Note → BindFire від свого Delay
-
-  const delayDefs = blockDefs.filter(b => b.type === 'Delay');
-
-  delayDefs.forEach((delayDef, i) => {
-    if (i === 0) return; // перший Delay — контролером має бути Switch який гравець ставить сам
-    const prevDelay = delayDefs[i - 1];
-    lines.push('[BINDING]');
-    lines.push('BlockID=' + delayDef.id);
-    lines.push('BindName=BindWait');
-    lines.push('ActionName=');
-    lines.push('ControllerID=' + prevDelay.id);
-    lines.push('KeyCode=1007');
-    lines.push('[/BINDING]');
-    lines.push('');
-  });
-
-  blockDefs.filter(b => b.type === 'Note').forEach(noteDef => {
-    lines.push('[BINDING]');
-    lines.push('BlockID=' + noteDef.id);
-    lines.push('BindName=BindFire');
-    lines.push('ActionName=Activate');
-    lines.push('ControllerID=' + noteDef.delayID);
-    lines.push('KeyCode=1007');
-    lines.push('[/BINDING]');
-    lines.push('');
-  });
-
-  return lines.join('\n');
-}
-
 function updateBuildInfo() {
   if (!allGroups.length) return;
   let noteCount = 0, delayCount = 0;
