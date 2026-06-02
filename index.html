@@ -176,33 +176,46 @@
       </div>
     </div>
     <div class="build-options">
-      <label>
-        Start X:
-        <input type="number" id="optStartX" value="0" step="1">
-      </label>
-      <label>
-        Start Y:
-        <input type="number" id="optStartY" value="5" step="1">
-      </label>
-      <label>
-        Start Z:
-        <input type="number" id="optStartZ" value="0" step="1">
-      </label>
-      <label>
-        Spacing X:
-        <input type="number" id="optSpacingX" value="0" step="1" title="0 = all in same spot">
-      </label>
-      <label>
-        Track:
-        <select id="optTrack">
-          <option value="all">All tracks merged</option>
-        </select>
-      </label>
-      <label>
-        Min delay (s):
-        <input type="number" id="optMinDelay" value="0.1" step="0.05" min="0.05" max="2">
-      </label>
-    </div>
+  <label>
+    Зона:
+    <select id="optZone" onchange="applyZone()">
+      <option value="">— вибрати —</option>
+      <option value="black">BlackZone</option>
+      <option value="camo">CamoZone</option>
+      <option value="magenta">MagentaZone</option>
+      <option value="yeller">New YellerZone</option>
+      <option value="blue">Really blueZone</option>
+      <option value="red">Really redZone</option>
+      <option value="white">WhiteZone</option>
+    </select>
+  </label>
+  <label>
+    Start X:
+    <input type="number" id="optStartX" value="0" step="1">
+  </label>
+  <label>
+    Start Y:
+    <input type="number" id="optStartY" value="5" step="1">
+  </label>
+  <label>
+    Start Z:
+    <input type="number" id="optStartZ" value="0" step="1">
+  </label>
+  <label>
+    Spacing X:
+    <input type="number" id="optSpacingX" value="0" step="1" title="0 = all in same spot">
+  </label>
+  <label>
+    Track:
+    <select id="optTrack">
+      <option value="all">All tracks merged</option>
+    </select>
+  </label>
+  <label>
+    Min delay (s):
+    <input type="number" id="optMinDelay" value="0.1" step="0.05" min="0.05" max="2">
+  </label>
+</div>
     <div class="build-actions">
       <button class="btn-download" onclick="downloadBuildFile()">⬇ Download MyBuild.Build</button>
       <button class="btn-preview" onclick="togglePreview()">👁 Preview</button>
@@ -300,7 +313,24 @@ const GAME_NOTES = [
 
 const MIDI_TO_GAME = {};
 GAME_NOTES.forEach(n => { MIDI_TO_GAME[n.midi] = n; });
+const ZONES = {
+  black:   { x: -328.966, y: -17.9999924 + 23, z: -72.107 },
+  camo:    { x: -328.966, y: -17.9999924 + 23, z: 285.893 },
+  magenta: { x:  221.834, y: -17.9999924 + 23, z: 647.693 },
+  yeller:  { x: -328.966, y: -17.9999924 + 23, z: 643.893 },
+  blue:    { x:  221.834, y: -17.9999924 + 23, z: 289.493 },
+  red:     { x:  221.834, y: -17.9999924 + 23, z: -68.707 },
+  white:   { x:  -53.566, y: -17.9999924 + 23, z: -345.507 },
+};
 
+function applyZone() {
+  const key = document.getElementById('optZone').value;
+  if (!key || !ZONES[key]) return;
+  const z = ZONES[key];
+  document.getElementById('optStartX').value = z.x.toFixed(3);
+  document.getElementById('optStartY').value = z.y.toFixed(3);
+  document.getElementById('optStartZ').value = z.z.toFixed(3);
+}
 function getGameNote(midiNum) {
   if (MIDI_TO_GAME[midiNum]) return MIDI_TO_GAME[midiNum];
   let best = GAME_NOTES[0], bestDist = Math.abs(midiNum - GAME_NOTES[0].midi);
@@ -449,44 +479,88 @@ function generateBuildContent() {
   lines.push('VERSION=2');
   lines.push('');
 
+  // Генеруємо UUID простий (не крипто, але унікальний достатньо)
+  function genID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16).toUpperCase();
+    });
+  }
+
   let blockIdx = 0;
+  // Зберігаємо структуру для binding-ів
+  const blockDefs = []; // { id, type, groupIdx }
 
+  // Спочатку генеруємо всі ID
   allGroups.forEach((group, gi) => {
-    // ─ Delay block (skip before first note — first delay = 0 handled by lever) ─
-    let delayTime = 0;
-    if (gi === 0) {
-      delayTime = 0.1;
-    } else {
-      delayTime = clampDelay(Math.max(minDelay, group.time - allGroups[gi - 1].time));
-    }
+    const delayID = genID();
+    blockDefs.push({ id: delayID, type: 'Delay', groupIdx: gi });
+    group.notes.forEach(() => {
+      blockDefs.push({ id: genID(), type: 'Note', groupIdx: gi, delayID });
+    });
+  });
 
+  // Пишемо [BLOCK] секції
+  let defIdx = 0;
+  allGroups.forEach((group, gi) => {
+    let delayTime = gi === 0 ? 0.1 : clampDelay(Math.max(minDelay, group.time - allGroups[gi - 1].time));
+
+    const delayDef = blockDefs[defIdx];
     const delayX = startX + blockIdx * spacingX;
-    const delayY = startY;
-    const delayZ = startZ;
-
     lines.push('[BLOCK]');
+    lines.push('BlockID=' + delayDef.id);
     lines.push('Name=Delay');
-    lines.push('CFrame=' + cf(delayX, delayY, delayZ));
+    lines.push('CFrame=' + cf(delayX, startY, startZ));
     lines.push('DelayTime=' + delayTime);
     lines.push('[/BLOCK]');
     lines.push('');
-    blockIdx++;
+    blockIdx++; defIdx++;
 
-    // ─ Note blocks (one per note in group, same position) ─
     group.notes.forEach((note) => {
+      const noteDef = blockDefs[defIdx];
       const gameNote = getGameNote(note.midi);
       const noteX = startX + blockIdx * spacingX;
-      const noteY = startY;
-      const noteZ = startZ;
-
       lines.push('[BLOCK]');
+      lines.push('BlockID=' + noteDef.id);
       lines.push('Name=Note');
-      lines.push('CFrame=' + cf(noteX, noteY, noteZ));
+      lines.push('CFrame=' + cf(noteX, startY, startZ));
       lines.push('SemitoneOffset=' + gameNote.semitone);
       lines.push('[/BLOCK]');
       lines.push('');
-      blockIdx++;
+      blockIdx++; defIdx++;
     });
+  });
+
+  // Пишемо [BINDING] секції
+  // Знаходимо ID попереднього контролера для кожного Delay
+  // Delay[0] → BindWait від Switch (але Switch не генеруємо, тому пропускаємо першу)
+  // Delay[gi] → BindWait від Delay[gi-1]
+  // Note → BindFire від свого Delay
+
+  const delayDefs = blockDefs.filter(b => b.type === 'Delay');
+
+  delayDefs.forEach((delayDef, i) => {
+    if (i === 0) return; // перший Delay — контролером має бути Switch який гравець ставить сам
+    const prevDelay = delayDefs[i - 1];
+    lines.push('[BINDING]');
+    lines.push('BlockID=' + delayDef.id);
+    lines.push('BindName=BindWait');
+    lines.push('ActionName=');
+    lines.push('ControllerID=' + prevDelay.id);
+    lines.push('KeyCode=1007');
+    lines.push('[/BINDING]');
+    lines.push('');
+  });
+
+  blockDefs.filter(b => b.type === 'Note').forEach(noteDef => {
+    lines.push('[BINDING]');
+    lines.push('BlockID=' + noteDef.id);
+    lines.push('BindName=BindFire');
+    lines.push('ActionName=Activate');
+    lines.push('ControllerID=' + noteDef.delayID);
+    lines.push('KeyCode=1007');
+    lines.push('[/BINDING]');
+    lines.push('');
   });
 
   return lines.join('\n');
