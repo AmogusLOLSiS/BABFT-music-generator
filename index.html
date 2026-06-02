@@ -47,6 +47,52 @@
   .stat-card.conns .val { color: var(--danger); }
   .stat-card.pages .val { color: var(--accent2); }
 
+  /* Download Build section */
+  .build-export { display: none; background: var(--surface); border: 1px solid rgba(93,202,165,0.3); border-radius: 14px; padding: 1.2rem 1.4rem; margin-bottom: 1.5rem; }
+  .build-export.show { display: block; }
+  .build-export-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 1rem; }
+  .build-export-header h3 { font-size: 0.9rem; font-weight: 600; color: var(--accent2); display: flex; align-items: center; gap: 8px; }
+  .build-export-header p { font-size: 0.78rem; color: var(--text3); margin-top: 3px; }
+  .build-options { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 1rem; }
+  .build-options label { font-size: 0.78rem; color: var(--text2); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .build-options input[type=number] {
+    background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px;
+    color: var(--text); font-size: 0.78rem; padding: 3px 8px; width: 72px;
+    font-family: 'Space Mono', monospace;
+  }
+  .build-options input[type=number]:focus { outline: none; border-color: var(--accent2); }
+  .build-options select {
+    background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px;
+    color: var(--text); font-size: 0.78rem; padding: 3px 8px;
+    font-family: 'Space Mono', monospace; cursor: pointer;
+  }
+  .build-options select:focus { outline: none; border-color: var(--accent2); }
+  .build-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn-download {
+    font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 600;
+    padding: 9px 22px; border-radius: 10px; border: none; cursor: pointer;
+    background: linear-gradient(135deg, #1d9e75, #2dc896);
+    color: #fff; transition: opacity .15s, transform .1s;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .btn-download:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-download:active { transform: translateY(0); }
+  .btn-preview {
+    font-family: 'Space Mono', monospace; font-size: 0.75rem;
+    padding: 9px 16px; border-radius: 10px; border: 1px solid var(--border2);
+    background: transparent; color: var(--text2); cursor: pointer; transition: background .15s, color .15s;
+  }
+  .btn-preview:hover { background: var(--surface2); color: var(--text); }
+  .build-preview {
+    display: none; margin-top: 1rem;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: 0.9rem 1rem; max-height: 200px; overflow-y: auto;
+  }
+  .build-preview.show { display: block; }
+  .build-preview pre { font-family: 'Space Mono', monospace; font-size: 0.72rem; color: #7dd87a; line-height: 1.6; white-space: pre-wrap; }
+  .build-info { font-size: 0.72rem; color: var(--text3); margin-top: 0.6rem; }
+  .build-info strong { color: var(--accent2); }
+
   /* Pagination controls */
   .pagination { display: none; align-items: center; justify-content: space-between; margin-bottom: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0.75rem 1.1rem; }
   .pagination.show { display: flex; }
@@ -121,6 +167,53 @@
     <div class="stat-card pages"><div class="lbl">Pages</div><div class="val" id="statPages">0</div></div>
   </div>
 
+  <!-- ═══ BUILD EXPORT ═══ -->
+  <div class="build-export" id="buildExport">
+    <div class="build-export-header">
+      <div>
+        <h3>🧱 Export .Build file</h3>
+        <p>Ready to paste into SaveLoadBuild script — Note + Delay blocks</p>
+      </div>
+    </div>
+    <div class="build-options">
+      <label>
+        Start X:
+        <input type="number" id="optStartX" value="0" step="1">
+      </label>
+      <label>
+        Start Y:
+        <input type="number" id="optStartY" value="5" step="1">
+      </label>
+      <label>
+        Start Z:
+        <input type="number" id="optStartZ" value="0" step="1">
+      </label>
+      <label>
+        Spacing X:
+        <input type="number" id="optSpacingX" value="0" step="1" title="0 = all in same spot">
+      </label>
+      <label>
+        Track:
+        <select id="optTrack">
+          <option value="all">All tracks merged</option>
+        </select>
+      </label>
+      <label>
+        Min delay (s):
+        <input type="number" id="optMinDelay" value="0.1" step="0.05" min="0.05" max="2">
+      </label>
+    </div>
+    <div class="build-actions">
+      <button class="btn-download" onclick="downloadBuildFile()">⬇ Download MyBuild.Build</button>
+      <button class="btn-preview" onclick="togglePreview()">👁 Preview</button>
+    </div>
+    <div class="build-preview" id="buildPreview">
+      <pre id="buildPreviewText"></pre>
+    </div>
+    <div class="build-info" id="buildInfo"></div>
+  </div>
+  <!-- ════════════════════ -->
+
   <div class="built-row" id="builtRow">
     <span style="font-size:0.8rem;color:var(--text2);white-space:nowrap">Built:</span>
     <span style="font-family:'Space Mono',monospace;font-size:1.1rem;color:#1d9e75;font-weight:700" id="builtCount">0</span>
@@ -178,31 +271,31 @@
 
 <script>
 const GAME_NOTES = [
-  { midi: 54, name: 'F#3', color: '#c084fc', stroke: '#fff',    strokeW: 3 },
-  { midi: 55, name: 'G3',  color: '#e879a0', stroke: 'none',    strokeW: 0 },
-  { midi: 56, name: 'G#3', color: '#f97c7c', stroke: 'none',    strokeW: 0 },
-  { midi: 57, name: 'A3',  color: '#f9a86a', stroke: 'none',    strokeW: 0 },
-  { midi: 58, name: 'A#3', color: '#f5c842', stroke: 'none',    strokeW: 0 },
-  { midi: 59, name: 'B3',  color: '#e8e04a', stroke: 'none',    strokeW: 0 },
-  { midi: 60, name: 'C4',  color: '#b8e04a', stroke: 'none',    strokeW: 0 },
-  { midi: 61, name: 'C#4', color: '#7dd87a', stroke: 'none',    strokeW: 0 },
-  { midi: 62, name: 'D4',  color: '#4dd6a0', stroke: 'none',    strokeW: 0 },
-  { midi: 63, name: 'D#4', color: '#3dc87a', stroke: 'none',    strokeW: 0 },
-  { midi: 64, name: 'E4',  color: '#4dc8b8', stroke: 'none',    strokeW: 0 },
-  { midi: 65, name: 'F4',  color: '#a8d8c8', stroke: 'none',    strokeW: 0 },
-  { midi: 66, name: 'F#4', color: '#72e4c8', stroke: 'none',    strokeW: 0 },
-  { midi: 67, name: 'G4',  color: '#7ec8e8', stroke: 'none',    strokeW: 0 },
-  { midi: 68, name: 'G#4', color: '#5aaee8', stroke: 'none',    strokeW: 0 },
-  { midi: 69, name: 'A4',  color: '#5a90e8', stroke: 'none',    strokeW: 0 },
-  { midi: 70, name: 'A#4', color: '#60a8f8', stroke: 'none',    strokeW: 0 },
-  { midi: 71, name: 'B4',  color: '#7888e8', stroke: 'none',    strokeW: 0 },
-  { midi: 72, name: 'C5',  color: '#9090e8', stroke: 'none',    strokeW: 0 },
-  { midi: 73, name: 'C#5', color: '#a890e0', stroke: 'none',    strokeW: 0 },
-  { midi: 74, name: 'D5',  color: '#b890d8', stroke: 'none',    strokeW: 0 },
-  { midi: 75, name: 'D#5', color: '#c898d8', stroke: 'none',    strokeW: 0 },
-  { midi: 76, name: 'E5',  color: '#b880cc', stroke: 'none',    strokeW: 0 },
-  { midi: 77, name: 'F5',  color: '#9878d8', stroke: 'none',    strokeW: 0 },
-  { midi: 78, name: 'F#5', color: '#c084fc', stroke: '#dc2626', strokeW: 3 },
+  { midi: 54, name: 'F#3', semitone: 0,  color: '#c084fc', stroke: '#fff',    strokeW: 3 },
+  { midi: 55, name: 'G3',  semitone: 1,  color: '#e879a0', stroke: 'none',    strokeW: 0 },
+  { midi: 56, name: 'G#3', semitone: 2,  color: '#f97c7c', stroke: 'none',    strokeW: 0 },
+  { midi: 57, name: 'A3',  semitone: 3,  color: '#f9a86a', stroke: 'none',    strokeW: 0 },
+  { midi: 58, name: 'A#3', semitone: 4,  color: '#f5c842', stroke: 'none',    strokeW: 0 },
+  { midi: 59, name: 'B3',  semitone: 5,  color: '#e8e04a', stroke: 'none',    strokeW: 0 },
+  { midi: 60, name: 'C4',  semitone: 6,  color: '#b8e04a', stroke: 'none',    strokeW: 0 },
+  { midi: 61, name: 'C#4', semitone: 7,  color: '#7dd87a', stroke: 'none',    strokeW: 0 },
+  { midi: 62, name: 'D4',  semitone: 8,  color: '#4dd6a0', stroke: 'none',    strokeW: 0 },
+  { midi: 63, name: 'D#4', semitone: 9,  color: '#3dc87a', stroke: 'none',    strokeW: 0 },
+  { midi: 64, name: 'E4',  semitone: 10, color: '#4dc8b8', stroke: 'none',    strokeW: 0 },
+  { midi: 65, name: 'F4',  semitone: 11, color: '#a8d8c8', stroke: 'none',    strokeW: 0 },
+  { midi: 66, name: 'F#4', semitone: 12, color: '#72e4c8', stroke: 'none',    strokeW: 0 },
+  { midi: 67, name: 'G4',  semitone: 13, color: '#7ec8e8', stroke: 'none',    strokeW: 0 },
+  { midi: 68, name: 'G#4', semitone: 14, color: '#5aaee8', stroke: 'none',    strokeW: 0 },
+  { midi: 69, name: 'A4',  semitone: 15, color: '#5a90e8', stroke: 'none',    strokeW: 0 },
+  { midi: 70, name: 'A#4', semitone: 16, color: '#60a8f8', stroke: 'none',    strokeW: 0 },
+  { midi: 71, name: 'B4',  semitone: 17, color: '#7888e8', stroke: 'none',    strokeW: 0 },
+  { midi: 72, name: 'C5',  semitone: 18, color: '#9090e8', stroke: 'none',    strokeW: 0 },
+  { midi: 73, name: 'C#5', semitone: 19, color: '#a890e0', stroke: 'none',    strokeW: 0 },
+  { midi: 74, name: 'D5',  semitone: 20, color: '#b890d8', stroke: 'none',    strokeW: 0 },
+  { midi: 75, name: 'D#5', semitone: 21, color: '#c898d8', stroke: 'none',    strokeW: 0 },
+  { midi: 76, name: 'E5',  semitone: 22, color: '#b880cc', stroke: 'none',    strokeW: 0 },
+  { midi: 77, name: 'F5',  semitone: 23, color: '#9878d8', stroke: 'none',    strokeW: 0 },
+  { midi: 78, name: 'F#5', semitone: 24, color: '#c084fc', stroke: '#dc2626', strokeW: 3 },
 ];
 
 const MIDI_TO_GAME = {};
@@ -223,8 +316,7 @@ let allGroups = [];
 let currentPage = 1;
 const COLS_PER_ROW = 16;
 const ROWS_PER_PAGE = 8;
-const PAGE_SIZE = COLS_PER_ROW * ROWS_PER_PAGE; // 128
-// builtState[gi] = true/false across all groups
+const PAGE_SIZE = COLS_PER_ROW * ROWS_PER_PAGE;
 const builtState = {};
 
 // ── Upload ─────────────────────────────────────────────────────
@@ -248,15 +340,41 @@ function handleFile(file) {
 function parseMidi(buffer) {
   try {
     const midi = new Midi(buffer);
-    let events = [];
-    midi.tracks.forEach(track => {
-      track.notes.forEach(note => events.push({ time: note.time, duration: note.duration, midi: note.midi }));
+    // Populate track selector
+    const sel = document.getElementById('optTrack');
+    sel.innerHTML = '<option value="all">All tracks merged</option>';
+    midi.tracks.forEach((track, i) => {
+      if (track.notes.length > 0) {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = `Track ${i+1}${track.name ? ': ' + track.name : ''} (${track.notes.length} notes)`;
+        sel.appendChild(opt);
+      }
     });
-    events.sort((a, b) => a.time - b.time);
-    if (!events.length) { alert('No notes found in MIDI file'); return; }
-    processGroups(events);
+    window._midiData = midi;
+    processMidiWithOptions();
   } catch(e) { alert('Error reading MIDI: ' + e.message); }
 }
+
+function processMidiWithOptions() {
+  const midi = window._midiData;
+  if (!midi) return;
+  const trackVal = document.getElementById('optTrack').value;
+  let events = [];
+  if (trackVal === 'all') {
+    midi.tracks.forEach(track => track.notes.forEach(note => events.push({ time: note.time, duration: note.duration, midi: note.midi })));
+  } else {
+    const t = midi.tracks[parseInt(trackVal)];
+    if (t) t.notes.forEach(note => events.push({ time: note.time, duration: note.duration, midi: note.midi }));
+  }
+  events.sort((a, b) => a.time - b.time);
+  if (!events.length) { alert('No notes found'); return; }
+  processGroups(events);
+}
+
+document.getElementById('optTrack').addEventListener('change', () => {
+  if (window._midiData) processMidiWithOptions();
+});
 
 function simulateNotes() {
   const gameRange = GAME_NOTES.map(n => n.midi);
@@ -281,7 +399,6 @@ function processGroups(events) {
   }
 
   const totalPages = Math.ceil(allGroups.length / PAGE_SIZE);
-  // Stats
   let totalNotes = 0;
   allGroups.forEach(g => totalNotes += g.notes.length);
   document.getElementById('statNotes').textContent = totalNotes;
@@ -292,9 +409,122 @@ function processGroups(events) {
   document.getElementById('downloadBtn').style.display = 'inline-flex';
   document.getElementById('emptyState').style.display = 'none';
   document.getElementById('schemaSvg').style.display = 'block';
+  document.getElementById('buildExport').classList.add('show');
   buildColorRef();
   currentPage = 1;
   renderPage(currentPage);
+  updateBuildInfo();
+  // Hide preview on new file
+  document.getElementById('buildPreview').classList.remove('show');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  .BUILD FILE GENERATION
+// ══════════════════════════════════════════════════════════════
+
+function cf(x, y, z) {
+  // Identity CFrame at position (x,y,z): 12 components
+  // CFrame.new(x,y,z) = x,y,z, 1,0,0, 0,1,0, 0,0,1
+  return `${x.toFixed(6)},${y.toFixed(6)},${z.toFixed(6)},1.000000,0.000000,0.000000,0.000000,1.000000,0.000000,0.000000,0.000000,1.000000`;
+}
+
+function clampDelay(val) {
+  // DelayTime values in CYCLE_SEQUENCES: {1,2,3,4,5,0.1,0.25,0.5,0.75}
+  // We just pass as isNumberPlus so it accepts any value via InvokeServer directly
+  // Clamp to reasonable range
+  val = Math.max(0.05, val);
+  val = Math.round(val * 100) / 100; // 2 decimal places
+  return val;
+}
+
+function generateBuildContent() {
+  const startX = parseFloat(document.getElementById('optStartX').value) || 0;
+  const startY = parseFloat(document.getElementById('optStartY').value) || 5;
+  const startZ = parseFloat(document.getElementById('optStartZ').value) || 0;
+  const spacingX = parseFloat(document.getElementById('optSpacingX').value) || 0;
+  const minDelay = parseFloat(document.getElementById('optMinDelay').value) || 0.1;
+
+  const lines = [];
+  lines.push('-- .Build file | Generated by BABFT Note Schema | ' + new Date().toLocaleString());
+  lines.push('VERSION=2');
+  lines.push('');
+
+  let blockIdx = 0;
+
+  allGroups.forEach((group, gi) => {
+    // ─ Delay block (skip before first note — first delay = 0 handled by lever) ─
+    let delayTime = 0;
+    if (gi === 0) {
+      delayTime = 0.1;
+    } else {
+      delayTime = clampDelay(Math.max(minDelay, group.time - allGroups[gi - 1].time));
+    }
+
+    const delayX = startX + blockIdx * spacingX;
+    const delayY = startY;
+    const delayZ = startZ;
+
+    lines.push('[BLOCK]');
+    lines.push('Name=Delay');
+    lines.push('CFrame=' + cf(delayX, delayY, delayZ));
+    lines.push('DelayTime=' + delayTime);
+    lines.push('[/BLOCK]');
+    lines.push('');
+    blockIdx++;
+
+    // ─ Note blocks (one per note in group, same position) ─
+    group.notes.forEach((note) => {
+      const gameNote = getGameNote(note.midi);
+      const noteX = startX + blockIdx * spacingX;
+      const noteY = startY;
+      const noteZ = startZ;
+
+      lines.push('[BLOCK]');
+      lines.push('Name=Note');
+      lines.push('CFrame=' + cf(noteX, noteY, noteZ));
+      lines.push('SemitoneOffset=' + gameNote.semitone);
+      lines.push('[/BLOCK]');
+      lines.push('');
+      blockIdx++;
+    });
+  });
+
+  return lines.join('\n');
+}
+
+function updateBuildInfo() {
+  if (!allGroups.length) return;
+  // Count blocks
+  let noteCount = 0, delayCount = 0;
+  allGroups.forEach(g => { delayCount++; noteCount += g.notes.length; });
+  const total = noteCount + delayCount;
+  document.getElementById('buildInfo').innerHTML =
+    `Will generate <strong>${total}</strong> blocks: <strong>${delayCount}</strong> Delay + <strong>${noteCount}</strong> Note`;
+}
+
+function togglePreview() {
+  const prev = document.getElementById('buildPreview');
+  const txt  = document.getElementById('buildPreviewText');
+  if (prev.classList.contains('show')) {
+    prev.classList.remove('show');
+  } else {
+    const content = generateBuildContent();
+    // Show first 60 lines as preview
+    const lines = content.split('\n');
+    const preview = lines.slice(0, 80).join('\n') + (lines.length > 80 ? '\n...' : '');
+    txt.textContent = preview;
+    prev.classList.add('show');
+  }
+}
+
+function downloadBuildFile() {
+  const content = generateBuildContent();
+  const blob = new Blob([content], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'MyBuild.Build';
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 // ── Render a single page ───────────────────────────────────────
@@ -333,14 +563,12 @@ function renderPage(page) {
     return { x: PAD_L + col * COL_W + 24, y: PAD_T + row * ROW_H + TIMER_R };
   }
 
-  // Lever
   const leverX = PAD_L - 42, leverY = PAD_T - 8;
   svg.appendChild(el(SVG_NS, 'rect', { x: leverX, y: leverY, width: LEVER_W, height: LEVER_H, rx: 5, fill: '#555', stroke: '#888', 'stroke-width': 1.5 }));
   const leverLbl = el(SVG_NS, 'text', { x: leverX + LEVER_W/2, y: leverY + LEVER_H + 16, 'text-anchor': 'middle', 'font-size': 11, fill: '#666' });
   leverLbl.textContent = 'lever';
   svg.appendChild(leverLbl);
 
-  // Lever → first timer
   const t0 = timerPos(0);
   svg.appendChild(el(SVG_NS, 'line', { x1: leverX + LEVER_W, y1: leverY + LEVER_H/2, x2: t0.x - TIMER_R, y2: t0.y, stroke: '#e24b4a', 'stroke-width': 2, 'stroke-dasharray': '5 3' }));
   pageConns++;
@@ -348,13 +576,11 @@ function renderPage(page) {
   let prevPos = null;
 
   shown.forEach((group, localIdx) => {
-    const gi = startGi + localIdx; // global index
+    const gi = startGi + localIdx;
     const pos = timerPos(localIdx);
 
-    // Compute delay: within page use actual time diff; at page boundary note it's continued
     let timeDiff;
     if (localIdx === 0 && page > 1) {
-      // First timer on page > 1: diff from last of previous page
       const prevGroup = allGroups[startGi - 1];
       timeDiff = Math.max(0.05, Math.min(10, parseFloat((group.time - prevGroup.time).toFixed(2))));
     } else if (localIdx === 0) {
@@ -363,7 +589,6 @@ function renderPage(page) {
       timeDiff = Math.max(0.05, Math.min(10, parseFloat((group.time - shown[localIdx-1].time).toFixed(2))));
     }
 
-    // Connection line
     if (prevPos !== null) {
       const prevRow = Math.floor((localIdx - 1) / COLS_PER_ROW);
       const curRow  = Math.floor(localIdx / COLS_PER_ROW);
@@ -378,7 +603,6 @@ function renderPage(page) {
       pageConns++;
     }
 
-    // Timer circle
     const timerG = el(SVG_NS, 'g', { style: 'cursor:pointer', 'data-gi': gi });
     const isBuilt = !!builtState[gi];
     const ringColor  = isBuilt ? '#1d9e75' : '#ef9f27';
@@ -397,7 +621,6 @@ function renderPage(page) {
     tCheck.textContent = '✓';
     timerG.appendChild(tCheck);
 
-    // Global index label (small, top-left of timer)
     const giLbl = el(SVG_NS, 'text', { x: pos.x - TIMER_R + 4, y: pos.y - TIMER_R + 10, 'text-anchor': 'start', 'font-size': 8, fill: '#44425a' });
     giLbl.textContent = '#' + (gi + 1);
     timerG.appendChild(giLbl);
@@ -423,12 +646,10 @@ function renderPage(page) {
     });
     svg.appendChild(timerG);
 
-    // Time label
     const tLbl = el(SVG_NS, 'text', { x: pos.x, y: pos.y - TIMER_R - 7, 'text-anchor': 'middle', 'font-size': 9, fill: '#44425a' });
     tLbl.textContent = group.time.toFixed(2) + 's';
     svg.appendChild(tLbl);
 
-    // Notes
     const maxNotesPerCol = 2;
     group.notes.forEach((note, ni) => {
       const gameNote = getGameNote(note.midi);
@@ -445,7 +666,7 @@ function renderPage(page) {
 
       const strokeColor = gameNote.stroke !== 'none' ? gameNote.stroke : 'none';
       const nCirc = el(SVG_NS, 'circle', { cx: nx, cy: ny, r: sz/2, fill: gameNote.color, stroke: strokeColor, 'stroke-width': gameNote.strokeW });
-      nCirc.setAttribute('data-info', `${gameNote.name} | MIDI ${note.midi}`);
+      nCirc.setAttribute('data-info', `${gameNote.name} | MIDI ${note.midi} | semitone ${gameNote.semitone}`);
       nCirc.style.cursor = 'pointer';
       nCirc.addEventListener('mouseenter', showTooltip);
       nCirc.addEventListener('mouseleave', hideTooltip);
@@ -460,7 +681,6 @@ function renderPage(page) {
     prevPos = pos;
   });
 
-  // Stats
   document.getElementById('statConns').textContent = pageConns;
   updateBuiltCount();
   updatePagination(page, totalPages, startGi, endGi);
@@ -475,7 +695,6 @@ function updatePagination(page, totalPages, startGi, endGi) {
   }
   document.getElementById('paginationTop').classList.add('show');
   document.getElementById('paginationBot').classList.add('show');
-
   const range = `${startGi + 1}–${endGi}`;
   ['Top','Bot'].forEach(s => {
     document.getElementById('pageNum'+s).textContent = page;
@@ -496,10 +715,7 @@ function renderPageButtons(container, current, total) {
     return b;
   };
   const dot = () => { const s = document.createElement('span'); s.className = 'page-dots'; s.textContent = '…'; return s; };
-
   container.appendChild(btn('← Prev', current - 1, current === 1, false));
-
-  // Page number buttons: show first, last, current ±1, with dots
   const pages = new Set([1, total, current, current - 1, current + 1].filter(p => p >= 1 && p <= total));
   const sorted = [...pages].sort((a, b) => a - b);
   let prev = null;
@@ -508,7 +724,6 @@ function renderPageButtons(container, current, total) {
     container.appendChild(btn(p, p, false, p === current));
     prev = p;
   });
-
   container.appendChild(btn('Next →', current + 1, current === total, false));
 }
 
@@ -551,6 +766,7 @@ function buildColorRef() {
 
 function resetAll() {
   allGroups = [];
+  window._midiData = null;
   Object.keys(builtState).forEach(k => delete builtState[k]);
   document.getElementById('schemaSvg').style.display = 'none';
   document.getElementById('schemaSvg').innerHTML = '';
@@ -565,6 +781,10 @@ function resetAll() {
   document.getElementById('paginationTop').classList.remove('show');
   document.getElementById('paginationBot').classList.remove('show');
   document.getElementById('builtRow').style.display = 'none';
+  document.getElementById('buildExport').classList.remove('show');
+  document.getElementById('buildPreview').classList.remove('show');
+  const sel = document.getElementById('optTrack');
+  sel.innerHTML = '<option value="all">All tracks merged</option>';
 }
 
 function downloadSVG() {
