@@ -479,7 +479,6 @@ function generateBuildContent() {
   lines.push('VERSION=2');
   lines.push('');
 
-  // Генеруємо UUID простий (не крипто, але унікальний достатньо)
   function genID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
       const r = Math.random() * 16 | 0;
@@ -487,11 +486,12 @@ function generateBuildContent() {
     });
   }
 
-  let blockIdx = 0;
-  // Зберігаємо структуру для binding-ів
-  const blockDefs = []; // { id, type, groupIdx }
+  // Генеруємо Switch ID окремо
+  const switchID = genID();
 
-  // Спочатку генеруємо всі ID
+  let blockIdx = 0;
+  const blockDefs = [];
+
   allGroups.forEach((group, gi) => {
     const delayID = genID();
     blockDefs.push({ id: delayID, type: 'Delay', groupIdx: gi });
@@ -500,7 +500,17 @@ function generateBuildContent() {
     });
   });
 
-  // Пишемо [BLOCK] секції
+  // ── Switch блок (перший) ──
+  lines.push('[BLOCK]');
+  lines.push('BlockID=' + switchID);
+  lines.push('Name=Switch');
+  lines.push('CFrame=' + cf(startX + blockIdx * spacingX, startY, startZ));
+  lines.push('Anchored=true');
+  lines.push('[/BLOCK]');
+  lines.push('');
+  blockIdx++;
+
+  // ── Delay + Note блоки ──
   let defIdx = 0;
   allGroups.forEach((group, gi) => {
     let delayTime = gi === 0 ? 0.1 : clampDelay(Math.max(minDelay, group.time - allGroups[gi - 1].time));
@@ -512,6 +522,7 @@ function generateBuildContent() {
     lines.push('Name=Delay');
     lines.push('CFrame=' + cf(delayX, startY, startZ));
     lines.push('DelayTime=' + delayTime);
+    lines.push('Anchored=true');
     lines.push('[/BLOCK]');
     lines.push('');
     blockIdx++; defIdx++;
@@ -525,11 +536,54 @@ function generateBuildContent() {
       lines.push('Name=Note');
       lines.push('CFrame=' + cf(noteX, startY, startZ));
       lines.push('SemitoneOffset=' + gameNote.semitone);
+      lines.push('Anchored=true');
       lines.push('[/BLOCK]');
       lines.push('');
       blockIdx++; defIdx++;
     });
   });
+
+  // ── Bindings ──
+  const delayDefs = blockDefs.filter(b => b.type === 'Delay');
+
+  // Перший Delay чекає на Switch
+  lines.push('[BINDING]');
+  lines.push('BlockID=' + delayDefs[0].id);
+  lines.push('BindName=BindWait');
+  lines.push('ActionName=');
+  lines.push('ControllerID=' + switchID);
+  lines.push('KeyCode=1007');
+  lines.push('[/BINDING]');
+  lines.push('');
+
+  // Решта Delay чекають на попередній Delay
+  delayDefs.forEach((delayDef, i) => {
+    if (i === 0) return;
+    const prevDelay = delayDefs[i - 1];
+    lines.push('[BINDING]');
+    lines.push('BlockID=' + delayDef.id);
+    lines.push('BindName=BindWait');
+    lines.push('ActionName=');
+    lines.push('ControllerID=' + prevDelay.id);
+    lines.push('KeyCode=1007');
+    lines.push('[/BINDING]');
+    lines.push('');
+  });
+
+  // Note → BindFire від свого Delay
+  blockDefs.filter(b => b.type === 'Note').forEach(noteDef => {
+    lines.push('[BINDING]');
+    lines.push('BlockID=' + noteDef.id);
+    lines.push('BindName=BindFire');
+    lines.push('ActionName=Activate');
+    lines.push('ControllerID=' + noteDef.delayID);
+    lines.push('KeyCode=1007');
+    lines.push('[/BINDING]');
+    lines.push('');
+  });
+
+  return lines.join('\n');
+}
 
   // Пишемо [BINDING] секції
   // Знаходимо ID попереднього контролера для кожного Delay
@@ -568,12 +622,11 @@ function generateBuildContent() {
 
 function updateBuildInfo() {
   if (!allGroups.length) return;
-  // Count blocks
   let noteCount = 0, delayCount = 0;
   allGroups.forEach(g => { delayCount++; noteCount += g.notes.length; });
-  const total = noteCount + delayCount;
+  const total = noteCount + delayCount + 1; // +1 Switch
   document.getElementById('buildInfo').innerHTML =
-    `Will generate <strong>${total}</strong> blocks: <strong>${delayCount}</strong> Delay + <strong>${noteCount}</strong> Note`;
+    `Will generate <strong>${total}</strong> blocks: <strong>1</strong> Switch + <strong>${delayCount}</strong> Delay + <strong>${noteCount}</strong> Note`;
 }
 
 function togglePreview() {
