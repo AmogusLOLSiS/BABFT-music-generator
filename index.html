@@ -32,10 +32,6 @@
   .upload-zone .formats { display: inline-flex; gap: 8px; margin-top: 1rem; }
   .badge { font-family: 'Space Mono', monospace; font-size: 0.7rem; padding: 3px 10px; border-radius: 20px; border: 1px solid; }
   .badge.midi { color: var(--accent2); border-color: rgba(93,202,165,0.4); background: rgba(93,202,165,0.08); }
-  .badge.mp3  { color: var(--warn); border-color: rgba(239,159,39,0.4); background: rgba(239,159,39,0.08); }
-
-  .warning { background: rgba(239,159,39,0.08); border: 1px solid rgba(239,159,39,0.3); border-radius: 10px; padding: 0.75rem 1.1rem; font-size: 0.82rem; color: var(--warn); margin-bottom: 1.5rem; display: none; align-items: flex-start; gap: 10px; }
-  .warning.show { display: flex; }
 
   .stats-row { display: none; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.5rem; }
   .stats-row.show { display: grid; }
@@ -47,7 +43,6 @@
   .stat-card.conns .val { color: var(--danger); }
   .stat-card.pages .val { color: var(--accent2); }
 
-  /* Download Build section */
   .build-export { display: none; background: var(--surface); border: 1px solid rgba(93,202,165,0.3); border-radius: 14px; padding: 1.2rem 1.4rem; margin-bottom: 1.5rem; }
   .build-export.show { display: block; }
   .build-export-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 1rem; }
@@ -77,6 +72,7 @@
   }
   .btn-download:hover { opacity: 0.88; transform: translateY(-1px); }
   .btn-download:active { transform: translateY(0); }
+  .btn-download:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
   .btn-preview {
     font-family: 'Space Mono', monospace; font-size: 0.75rem;
     padding: 9px 16px; border-radius: 10px; border: 1px solid var(--border2);
@@ -93,7 +89,6 @@
   .build-info { font-size: 0.72rem; color: var(--text3); margin-top: 0.6rem; }
   .build-info strong { color: var(--accent2); }
 
-  /* Pagination controls */
   .pagination { display: none; align-items: center; justify-content: space-between; margin-bottom: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0.75rem 1.1rem; }
   .pagination.show { display: flex; }
   .page-info { font-family: 'Space Mono', monospace; font-size: 0.85rem; color: var(--text2); }
@@ -145,19 +140,13 @@
 </header>
 <main>
   <div class="upload-zone" id="dropZone">
-    <input type="file" id="fileInput" accept=".mid,.midi,.mp3,.wav">
+    <input type="file" id="fileInput" accept=".mid,.midi">
     <span class="icon">🎵</span>
-    <h2>Drag & drop or click to choose a file</h2>
-    <p>Upload music — get a note schema with timers and connections for the game</p>
+    <h2>Drag & drop or click to choose a MIDI file</h2>
+    <p>Підтримуються тільки MIDI файли — вони містять точні дані нот</p>
     <div class="formats">
-      <span class="badge midi">MIDI — accurate ✓</span>
-      <span class="badge mp3">MP3 / WAV — approximate</span>
+      <span class="badge midi">.mid / .midi ✓</span>
     </div>
-  </div>
-
-  <div class="warning" id="mp3Warn">
-    <span style="font-size:1.1rem;flex-shrink:0;margin-top:1px">⚠️</span>
-    <div><strong>MP3/WAV has no note data.</strong> Note detection is approximate. Use a <strong>MIDI file</strong> for accurate results.</div>
   </div>
 
   <div class="stats-row" id="statsRow">
@@ -167,7 +156,6 @@
     <div class="stat-card pages"><div class="lbl">Pages</div><div class="val" id="statPages">0</div></div>
   </div>
 
-  <!-- ═══ BUILD EXPORT ═══ -->
   <div class="build-export" id="buildExport">
     <div class="build-export-header">
       <div>
@@ -176,56 +164,39 @@
       </div>
     </div>
     <div class="build-options">
-  <label>
-    Зона:
-    <select id="optZone" onchange="applyZone()">
-      <option value="">— вибрати —</option>
-      <option value="black">BlackZone</option>
-      <option value="camo">CamoZone</option>
-      <option value="magenta">MagentaZone</option>
-      <option value="yeller">New YellerZone</option>
-      <option value="blue">Really blueZone</option>
-      <option value="red">Really redZone</option>
-      <option value="white">WhiteZone</option>
-    </select>
-  </label>
-  <label>
-    Start X:
-    <input type="number" id="optStartX" value="0" step="1">
-  </label>
-  <label>
-    Start Y:
-    <input type="number" id="optStartY" value="0" step="1">
-  </label>
-  <label>
-    Start Z:
-    <input type="number" id="optStartZ" value="0" step="1">
-  </label>
-  <label>
-    Spacing X:
-    <input type="number" id="optSpacingX" value="0" step="1" title="0 = all in same spot">
-  </label>
-  <label>
-    Track:
-    <select id="optTrack">
-      <option value="all">All tracks merged</option>
-    </select>
-  </label>
-  <label>
-    Min delay (s):
-    <input type="number" id="optMinDelay" value="0.05" step="0.05" min="0.05" max="2">
-  </label>
-</div>
+      <label>Zone:
+        <select id="optZone" onchange="applyZone()">
+          <option value="">— select team —</option>
+          <option value="black">Black team</option>
+          <option value="camo">Green team</option>
+          <option value="magenta">Purple team</option>
+          <option value="yeller">Yellow team</option>
+          <option value="blue">Blue team</option>
+          <option value="red">Red team</option>
+          <option value="white">White team</option>
+        </select>
+      </label>
+      <label>Start X: <input type="number" id="optStartX" value="0" step="1"></label>
+      <label>Start Y: <input type="number" id="optStartY" value="0" step="1"></label>
+      <label>Start Z: <input type="number" id="optStartZ" value="0" step="1"></label>
+      <label>Spacing X: <input type="number" id="optSpacingX" value="0" step="1" title="0 = all in same spot"></label>
+      <label>Track:
+        <select id="optTrack">
+          <option value="all">All tracks merged</option>
+        </select>
+      </label>
+      <label>Min delay (s): <input type="number" id="optMinDelay" value="0.05" step="0.05" min="0.05" max="2"></label>
+    </div>
     <div class="build-actions">
-      <button class="btn-download" onclick="downloadBuildFile()">⬇ Download MyBuild.Build</button>
+      <button class="btn-download" id="btnDownload" onclick="downloadBuildFile()" disabled title="Select a team zone first">⬇ Download MyBuild.Build</button>
       <button class="btn-preview" onclick="togglePreview()">👁 Preview</button>
     </div>
+    <div id="zoneHint" style="font-size:0.75rem;color:var(--warn);margin-top:0.5rem;">⚠ Select a team zone to enable download</div>
     <div class="build-preview" id="buildPreview">
       <pre id="buildPreviewText"></pre>
     </div>
     <div class="build-info" id="buildInfo"></div>
   </div>
-  <!-- ════════════════════ -->
 
   <div class="built-row" id="builtRow">
     <span style="font-size:0.8rem;color:var(--text2);white-space:nowrap">Built:</span>
@@ -237,7 +208,6 @@
     <span style="font-size:0.75rem;color:var(--text3)">click ⭕ to mark</span>
   </div>
 
-  <!-- Pagination top -->
   <div class="pagination" id="paginationTop">
     <div class="page-info">Page <strong id="pageNumTop">1</strong> of <strong id="pageTotalTop">1</strong> &nbsp;·&nbsp; timers <strong id="pageRangeTop">1–128</strong></div>
     <div class="page-btns" id="pageBtnsTop"></div>
@@ -259,7 +229,7 @@
     <div class="schema-body" id="schemaBody">
       <div class="empty" id="emptyState">
         <span class="big">🎼</span>
-        Upload a MIDI or MP3 file to see the schema
+        Upload a MIDI file to see the schema
       </div>
       <svg id="schemaSvg" style="display:none"></svg>
     </div>
@@ -273,7 +243,6 @@
     </div>
   </div>
 
-  <!-- Pagination bottom -->
   <div class="pagination" id="paginationBot" style="margin-top:1rem;margin-bottom:0">
     <div class="page-info">Page <strong id="pageNumBot">1</strong> of <strong id="pageTotalBot">1</strong> &nbsp;·&nbsp; timers <strong id="pageRangeBot">1–128</strong></div>
     <div class="page-btns" id="pageBtnsBot"></div>
@@ -325,10 +294,17 @@ const ZONES = {
 
 function applyZone() {
   const key = document.getElementById('optZone').value;
-  if (!key || !ZONES[key]) return;
+  const btn = document.getElementById('btnDownload');
+  const hint = document.getElementById('zoneHint');
+  if (!key || !ZONES[key]) {
+    btn.disabled = true;
+    if (hint) hint.style.display = 'block';
+    return;
+  }
+  btn.disabled = false;
+  if (hint) hint.style.display = 'none';
   const z = ZONES[key];
   document.getElementById('optStartX').value = z.x.toFixed(3);
-  //document.getElementById('optStartY').value = z.y.toFixed(3);
   document.getElementById('optStartZ').value = z.z.toFixed(3);
 }
 function getGameNote(midiNum) {
@@ -341,7 +317,6 @@ function getGameNote(midiNum) {
   return best;
 }
 
-// ── State ──────────────────────────────────────────────────────
 let allGroups = [];
 let currentPage = 1;
 const COLS_PER_ROW = 16;
@@ -349,28 +324,32 @@ const ROWS_PER_PAGE = 8;
 const PAGE_SIZE = COLS_PER_ROW * ROWS_PER_PAGE;
 const builtState = {};
 
-// ── Upload ─────────────────────────────────────────────────────
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
-dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag'); const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
 fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
 
 function handleFile(file) {
   const ext = file.name.split('.').pop().toLowerCase();
-  const isAudio = ext === 'mp3' || ext === 'wav';
-  document.getElementById('mp3Warn').classList.toggle('show', isAudio);
+  if (ext !== 'mid' && ext !== 'midi') {
+    alert('Підтримуються тільки MIDI файли (.mid, .midi).\nMP3, WAV та інші аудіо формати не підтримуються — у них немає даних нот.');
+    return;
+  }
   document.getElementById('schemaTitle').textContent = file.name;
   const reader = new FileReader();
-  reader.onload = ev => { if (!isAudio) parseMidi(ev.target.result); else simulateNotes(); };
+  reader.onload = ev => parseMidi(ev.target.result);
   reader.readAsArrayBuffer(file);
 }
 
 function parseMidi(buffer) {
   try {
     const midi = new Midi(buffer);
-    // Populate track selector
     const sel = document.getElementById('optTrack');
     sel.innerHTML = '<option value="all">All tracks merged</option>';
     midi.tracks.forEach((track, i) => {
@@ -406,18 +385,6 @@ document.getElementById('optTrack').addEventListener('change', () => {
   if (window._midiData) processMidiWithOptions();
 });
 
-function simulateNotes() {
-  const gameRange = GAME_NOTES.map(n => n.midi);
-  const events = [];
-  let t = 0;
-  for (let i = 0; i < 300; i++) {
-    const midi = gameRange[Math.floor(Math.random() * gameRange.length)];
-    events.push({ time: t, duration: 0.3 + Math.random() * 0.5, midi });
-    t += 0.25 + Math.random() * 0.5;
-  }
-  processGroups(events);
-}
-
 function processGroups(events) {
   allGroups = [];
   let i = 0;
@@ -444,32 +411,22 @@ function processGroups(events) {
   currentPage = 1;
   renderPage(currentPage);
   updateBuildInfo();
-  // Hide preview on new file
   document.getElementById('buildPreview').classList.remove('show');
 }
 
-// ══════════════════════════════════════════════════════════════
-//  .BUILD FILE GENERATION
-// ══════════════════════════════════════════════════════════════
-
 function cf(x, y, z) {
-  // Identity CFrame at position (x,y,z): 12 components
-  // CFrame.new(x,y,z) = x,y,z, 1,0,0, 0,1,0, 0,0,1
   return `${x.toFixed(6)},${y.toFixed(6)},${z.toFixed(6)},1.000000,0.000000,0.000000,0.000000,1.000000,0.000000,0.000000,0.000000,1.000000`;
 }
 
 function clampDelay(val) {
-  // DelayTime values in CYCLE_SEQUENCES: {1,2,3,4,5,0.1,0.25,0.5,0.75}
-  // We just pass as isNumberPlus so it accepts any value via InvokeServer directly
-  // Clamp to reasonable range
   val = Math.max(0.05, val);
-  val = Math.round(val * 100) / 100; // 2 decimal places
+  val = Math.round(val * 100) / 100;
   return val;
 }
 
 function generateBuildContent() {
   const startX = parseFloat(document.getElementById('optStartX').value) || 0;
-  const startY = parseFloat(document.getElementById('optStartY').value) || 5;
+  const startY = parseFloat(document.getElementById('optStartY').value);
   const startZ = parseFloat(document.getElementById('optStartZ').value) || 0;
   const spacingX = parseFloat(document.getElementById('optSpacingX').value) || 0;
   const minDelay = parseFloat(document.getElementById('optMinDelay').value) || 0.1;
@@ -486,9 +443,7 @@ function generateBuildContent() {
     });
   }
 
-  // Генеруємо Switch ID окремо
   const switchID = genID();
-
   let blockIdx = 0;
   const blockDefs = [];
 
@@ -500,7 +455,6 @@ function generateBuildContent() {
     });
   });
 
-  // ── Switch блок (перший) ──
   lines.push('[BLOCK]');
   lines.push('BlockID=' + switchID);
   lines.push('Name=Switch');
@@ -510,7 +464,6 @@ function generateBuildContent() {
   lines.push('');
   blockIdx++;
 
-  // ── Delay + Note блоки ──
   let defIdx = 0;
   allGroups.forEach((group, gi) => {
     let delayTime = gi === 0 ? 0.1 : clampDelay(Math.max(minDelay, group.time - allGroups[gi - 1].time));
@@ -543,10 +496,8 @@ function generateBuildContent() {
     });
   });
 
-  // ── Bindings ──
   const delayDefs = blockDefs.filter(b => b.type === 'Delay');
 
-  // Перший Delay чекає на Switch
   lines.push('[BINDING]');
   lines.push('BlockID=' + delayDefs[0].id);
   lines.push('BindName=BindWait');
@@ -556,7 +507,6 @@ function generateBuildContent() {
   lines.push('[/BINDING]');
   lines.push('');
 
-  // Решта Delay чекають на попередній Delay
   delayDefs.forEach((delayDef, i) => {
     if (i === 0) return;
     const prevDelay = delayDefs[i - 1];
@@ -570,7 +520,6 @@ function generateBuildContent() {
     lines.push('');
   });
 
-  // Note → BindFire від свого Delay
   blockDefs.filter(b => b.type === 'Note').forEach(noteDef => {
     lines.push('[BINDING]');
     lines.push('BlockID=' + noteDef.id);
@@ -589,7 +538,7 @@ function updateBuildInfo() {
   if (!allGroups.length) return;
   let noteCount = 0, delayCount = 0;
   allGroups.forEach(g => { delayCount++; noteCount += g.notes.length; });
-  const total = noteCount + delayCount + 1; // +1 Switch
+  const total = noteCount + delayCount + 1;
   document.getElementById('buildInfo').innerHTML =
     `Will generate <strong>${total}</strong> blocks: <strong>1</strong> Switch + <strong>${delayCount}</strong> Delay + <strong>${noteCount}</strong> Note`;
 }
@@ -601,7 +550,6 @@ function togglePreview() {
     prev.classList.remove('show');
   } else {
     const content = generateBuildContent();
-    // Show first 60 lines as preview
     const lines = content.split('\n');
     const preview = lines.slice(0, 80).join('\n') + (lines.length > 80 ? '\n...' : '');
     txt.textContent = preview;
@@ -619,7 +567,6 @@ function downloadBuildFile() {
   URL.revokeObjectURL(a.href);
 }
 
-// ── Render a single page ───────────────────────────────────────
 function renderPage(page) {
   currentPage = page;
   const totalPages = Math.ceil(allGroups.length / PAGE_SIZE);
@@ -663,7 +610,6 @@ function renderPage(page) {
     const leverLbl = el(SVG_NS, 'text', { x: leverX + LEVER_W/2, y: leverY + LEVER_H + 16, 'text-anchor': 'middle', 'font-size': 11, fill: '#666' });
     leverLbl.textContent = 'lever';
     svg.appendChild(leverLbl);
-
     svg.appendChild(el(SVG_NS, 'line', { x1: leverX + LEVER_W, y1: leverY + LEVER_H/2, x2: t0.x - TIMER_R, y2: t0.y, stroke: '#e24b4a', 'stroke-width': 2, 'stroke-dasharray': '5 3' }));
     pageConns++;
   }
@@ -781,7 +727,6 @@ function renderPage(page) {
   updatePagination(page, totalPages, startGi, endGi);
 }
 
-// ── Pagination UI ──────────────────────────────────────────────
 function updatePagination(page, totalPages, startGi, endGi) {
   if (totalPages <= 1) {
     document.getElementById('paginationTop').classList.remove('show');
@@ -822,7 +767,6 @@ function renderPageButtons(container, current, total) {
   container.appendChild(btn('Next →', current + 1, current === total, false));
 }
 
-// ── Built counter ──────────────────────────────────────────────
 function updateBuiltCount() {
   const total = allGroups.length;
   const built = Object.values(builtState).filter(Boolean).length;
@@ -833,7 +777,6 @@ function updateBuiltCount() {
   document.getElementById('builtBar').style.width = pct + '%';
 }
 
-// ── Helpers ────────────────────────────────────────────────────
 function el(ns, tag, attrs) {
   const e = document.createElementNS(ns, tag);
   Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
@@ -868,7 +811,6 @@ function resetAll() {
   document.getElementById('emptyState').style.display = 'block';
   document.getElementById('statsRow').classList.remove('show');
   document.getElementById('legendWrap').classList.remove('show');
-  document.getElementById('mp3Warn').classList.remove('show');
   document.getElementById('downloadBtn').style.display = 'none';
   document.getElementById('schemaTitle').textContent = 'Note schema';
   document.getElementById('fileInput').value = '';
