@@ -89,6 +89,9 @@
   .build-info { font-size: 0.72rem; color: var(--text3); margin-top: 0.6rem; }
   .build-info strong { color: var(--accent2); }
 
+  .grid-info { font-size: 0.75rem; color: var(--accent2); background: rgba(93,202,165,0.08); border: 1px solid rgba(93,202,165,0.2); border-radius: 8px; padding: 6px 12px; margin-bottom: 0.75rem; display: none; }
+  .grid-info.show { display: block; }
+
   .pagination { display: none; align-items: center; justify-content: space-between; margin-bottom: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0.75rem 1.1rem; }
   .pagination.show { display: flex; }
   .page-info { font-family: 'Space Mono', monospace; font-size: 0.85rem; color: var(--text2); }
@@ -160,7 +163,7 @@
     <div class="build-export-header">
       <div>
         <h3>🧱 Export .Build file</h3>
-        <p>Ready to paste into SaveLoadBuild script — Note + Delay blocks</p>
+        <p>Grid layout — Switch at center, blocks fill zone from top-right corner</p>
       </div>
     </div>
     <div class="build-options">
@@ -176,10 +179,7 @@
           <option value="white">White team</option>
         </select>
       </label>
-      <label>Start X: <input type="number" id="optStartX" value="0" step="1"></label>
-      <label>Start Y: <input type="number" id="optStartY" value="0" step="1"></label>
-      <label>Start Z: <input type="number" id="optStartZ" value="0" step="1"></label>
-      <label>Spacing X: <input type="number" id="optSpacingX" value="0" step="1" title="0 = all in same spot"></label>
+      <label>Spacing (studs): <input type="number" id="optSpacing" value="3" step="1" min="2" max="10" onchange="updateGridInfo()"></label>
       <label>Track:
         <select id="optTrack">
           <option value="all">All tracks merged</option>
@@ -187,6 +187,7 @@
       </label>
       <label>Min delay (s): <input type="number" id="optMinDelay" value="0.05" step="0.05" min="0.05" max="2"></label>
     </div>
+    <div class="grid-info" id="gridInfo"></div>
     <div class="build-actions">
       <button class="btn-download" id="btnDownload" onclick="downloadBuildFile()" disabled title="Select a team zone first">⬇ Download MyBuild.Build</button>
       <button class="btn-preview" onclick="togglePreview()">👁 Preview</button>
@@ -236,7 +237,7 @@
     <div class="legend" id="legendWrap">
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
         <span class="legend-label">Elements:</span>
-        <div class="legend-item"><div style="width:20px;height:10px;background:#666;border-radius:2px;flex-shrink:0"></div>lever (start)</div>
+        <div class="legend-item"><div style="width:20px;height:10px;background:#666;border-radius:2px;flex-shrink:0"></div>switch (start)</div>
         <div class="legend-item"><div style="width:18px;height:18px;border-radius:50%;border:2px solid var(--warn);flex-shrink:0"></div>timer (delay)</div>
         <div class="legend-item"><div style="width:24px;height:2px;background:var(--danger);flex-shrink:0"></div>connection</div>
       </div>
@@ -282,31 +283,59 @@ const GAME_NOTES = [
 
 const MIDI_TO_GAME = {};
 GAME_NOTES.forEach(n => { MIDI_TO_GAME[n.midi] = n; });
+
+// ── Зони: центр + поворот (0=стандарт, 90=повернута, -90=повернута)
+// Для 0°:   колонки по X (ширина=251.8), ряди по Z (довжина=299)
+// Для 90°:  колонки по Z (ширина=251.8), ряди по X (довжина=299)
+// Для -90°: колонки по Z (ширина=251.8), ряди по X (довжина=299)
 const ZONES = {
-  black:   { x: -328.966, y: -17.9999924 + 23, z: -72.107 },
-  camo:    { x: -328.966, y: -17.9999924 + 23, z: 285.893 },
-  magenta: { x:  221.834, y: -17.9999924 + 23, z: 647.693 },
-  yeller:  { x: -328.966, y: -17.9999924 + 23, z: 643.893 },
-  blue:    { x:  221.834, y: -17.9999924 + 23, z: 289.493 },
-  red:     { x:  221.834, y: -17.9999924 + 23, z: -68.707 },
-  white:   { x:  -53.566, y: -17.9999924 + 23, z: -345.507 },
+  black:   { cx: -328.966, cy: -13, cz: -72.107,   rot:  90 },
+  camo:    { cx: -328.966, cy: -13, cz: 285.893,    rot:  90 },
+  magenta: { cx:  221.834, cy: -13, cz: 647.693,    rot: -90 },
+  yeller:  { cx: -328.966, cy: -13, cz: 643.893,    rot:  90 },
+  blue:    { cx:  221.834, cy: -13, cz: 289.493,    rot: -90 },
+  red:     { cx:  221.834, cy: -13, cz: -68.707,    rot: -90 },
+  white:   { cx:  -53.566, cy: -13, cz: -345.507,   rot:   0 },
 };
+
+// Розміри зони (однакові для всіх)
+const ZONE_WIDTH  = 251.8; // по "ширині" зони
+const ZONE_LENGTH = 299.0; // по "довжині" зони
+const ZONE_MARGIN = 4;     // відступ від краю
+
+let currentZoneKey = '';
+
+function getZoneGrid() {
+  const spacing = Math.max(2, parseInt(document.getElementById('optSpacing').value) || 3);
+  const cols = Math.floor((ZONE_WIDTH  - ZONE_MARGIN * 2) / spacing);
+  const rows = Math.floor((ZONE_LENGTH - ZONE_MARGIN * 2) / spacing);
+  return { cols, rows, spacing, maxBlocks: cols * rows };
+}
 
 function applyZone() {
   const key = document.getElementById('optZone').value;
   const btn = document.getElementById('btnDownload');
   const hint = document.getElementById('zoneHint');
+  currentZoneKey = key;
   if (!key || !ZONES[key]) {
     btn.disabled = true;
-    if (hint) hint.style.display = 'block';
+    hint.style.display = 'block';
+    document.getElementById('gridInfo').classList.remove('show');
     return;
   }
   btn.disabled = false;
-  if (hint) hint.style.display = 'none';
-  const z = ZONES[key];
-  document.getElementById('optStartX').value = z.x.toFixed(3);
-  document.getElementById('optStartZ').value = z.z.toFixed(3);
+  hint.style.display = 'none';
+  updateGridInfo();
 }
+
+function updateGridInfo() {
+  if (!currentZoneKey) return;
+  const { cols, rows, spacing, maxBlocks } = getZoneGrid();
+  const info = document.getElementById('gridInfo');
+  info.classList.add('show');
+  info.textContent = `Grid: ${cols} cols × ${rows} rows = ${maxBlocks} max Delay slots  |  spacing: ${spacing} studs  |  Switch at zone center Y=-13`;
+}
+
 function getGameNote(midiNum) {
   if (MIDI_TO_GAME[midiNum]) return MIDI_TO_GAME[midiNum];
   let best = GAME_NOTES[0], bestDist = Math.abs(midiNum - GAME_NOTES[0].midi);
@@ -315,6 +344,40 @@ function getGameNote(midiNum) {
     if (d < bestDist) { bestDist = d; best = gn; }
   }
   return best;
+}
+
+// ── Конвертує (col, row) → (worldX, worldY, worldZ) з урахуванням повороту зони
+// Починаємо з правого верхнього кута (col=0,row=0) і йдемо вліво по col, вниз по row
+function gridToWorld(zone, col, row, spacing) {
+  const halfW = (ZONE_WIDTH  - ZONE_MARGIN * 2) / 2;
+  const halfL = (ZONE_LENGTH - ZONE_MARGIN * 2) / 2;
+
+  // Локальні координати відносно центру зони:
+  // col=0 → правий край (+halfW), збільшення col → вліво (-spacing)
+  // row=0 → верхній край (-halfL), збільшення row → вниз (+spacing)
+  const localA = halfW  - col * spacing; // вздовж "ширини"
+  const localB = -halfL + row * spacing; // вздовж "довжини"
+
+  let dx, dz;
+  if (zone.rot === 0) {
+    // White: ширина=X, довжина=Z
+    dx = localA;
+    dz = localB;
+  } else if (zone.rot === 90) {
+    // Black/Camo/Yeller: ширина=Z, довжина=X (повернута 90°)
+    dx = localB;
+    dz = localA;
+  } else {
+    // Red/Blue/Magenta: ширина=Z, довжина=X (повернута -90°)
+    dx = -localB;
+    dz = -localA;
+  }
+
+  return {
+    x: zone.cx + dx,
+    y: zone.cy,
+    z: zone.cz + dz,
+  };
 }
 
 let allGroups = [];
@@ -338,7 +401,7 @@ fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.
 function handleFile(file) {
   const ext = file.name.split('.').pop().toLowerCase();
   if (ext !== 'mid' && ext !== 'midi') {
-    alert('Підтримуються тільки MIDI файли (.mid, .midi).\nMP3, WAV та інші аудіо формати не підтримуються — у них немає даних нот.');
+    alert('Підтримуються тільки MIDI файли (.mid, .midi).');
     return;
   }
   document.getElementById('schemaTitle').textContent = file.name;
@@ -414,92 +477,98 @@ function processGroups(events) {
   document.getElementById('buildPreview').classList.remove('show');
 }
 
-function cf(x, y, z) {
+function cfStr(x, y, z) {
   return `${x.toFixed(6)},${y.toFixed(6)},${z.toFixed(6)},1.000000,0.000000,0.000000,0.000000,1.000000,0.000000,0.000000,0.000000,1.000000`;
 }
 
 function clampDelay(val) {
   val = Math.max(0.05, val);
-  val = Math.round(val * 100) / 100;
-  return val;
+  return Math.round(val * 100) / 100;
+}
+
+function genID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16).toUpperCase();
+  });
 }
 
 function generateBuildContent() {
-  const startX = parseFloat(document.getElementById('optStartX').value) || 0;
-  const startY = parseFloat(document.getElementById('optStartY').value);
-  const startZ = parseFloat(document.getElementById('optStartZ').value) || 0;
-  const spacingX = parseFloat(document.getElementById('optSpacingX').value) || 0;
-  const minDelay = parseFloat(document.getElementById('optMinDelay').value) || 0.1;
+  const zone = ZONES[currentZoneKey];
+  if (!zone) return '-- Error: no zone selected';
+
+  const minDelay = parseFloat(document.getElementById('optMinDelay').value) || 0.05;
+  const { cols, rows, spacing } = getZoneGrid();
+  const maxSlots = cols * rows;
+
+  if (allGroups.length > maxSlots) {
+    console.warn(`Song has ${allGroups.length} groups but zone fits only ${maxSlots}. Extra groups will be cut.`);
+  }
 
   const lines = [];
   lines.push('-- .Build file | Generated by BABFT Note Schema | ' + new Date().toLocaleString());
   lines.push('VERSION=2');
   lines.push('');
 
-  function genID() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-      const r = Math.random() * 16 | 0;
-      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16).toUpperCase();
-    });
-  }
-
+  // Switch — посередині зони
   const switchID = genID();
-  let blockIdx = 0;
-  const blockDefs = [];
-
-  allGroups.forEach((group, gi) => {
-    const delayID = genID();
-    blockDefs.push({ id: delayID, type: 'Delay', groupIdx: gi });
-    group.notes.forEach(() => {
-      blockDefs.push({ id: genID(), type: 'Note', groupIdx: gi, delayID });
-    });
-  });
-
   lines.push('[BLOCK]');
   lines.push('BlockID=' + switchID);
   lines.push('Name=Switch');
-  lines.push('CFrame=' + cf(startX + blockIdx * spacingX, startY, startZ));
+  lines.push('CFrame=' + cfStr(zone.cx, zone.cy, zone.cz));
   lines.push('Anchored=true');
   lines.push('[/BLOCK]');
   lines.push('');
-  blockIdx++;
 
-  let defIdx = 0;
-  allGroups.forEach((group, gi) => {
-    let delayTime = gi === 0 ? 0.1 : clampDelay(Math.max(minDelay, group.time - allGroups[gi - 1].time));
+  const delayIDs = [];   // зберігаємо ID всіх Delay по порядку
+  const noteBindings = []; // {noteID, delayID}
 
-    const delayDef = blockDefs[defIdx];
-    const delayX = startX + blockIdx * spacingX;
+  const groupCount = Math.min(allGroups.length, maxSlots);
+
+  allGroups.slice(0, groupCount).forEach((group, gi) => {
+    const col = gi % cols;
+    const row = Math.floor(gi / cols);
+    const pos = gridToWorld(zone, col, row, spacing);
+
+    const delayTime = gi === 0
+      ? 0.1
+      : clampDelay(Math.max(minDelay, group.time - allGroups[gi - 1].time));
+
+    const delayID = genID();
+    delayIDs.push(delayID);
+
+    // Delay блок
     lines.push('[BLOCK]');
-    lines.push('BlockID=' + delayDef.id);
+    lines.push('BlockID=' + delayID);
     lines.push('Name=Delay');
-    lines.push('CFrame=' + cf(delayX, startY, startZ));
+    lines.push('CFrame=' + cfStr(pos.x, pos.y, pos.z));
     lines.push('DelayTime=' + delayTime);
     lines.push('Anchored=true');
     lines.push('[/BLOCK]');
     lines.push('');
-    blockIdx++; defIdx++;
 
-    group.notes.forEach((note) => {
-      const noteDef = blockDefs[defIdx];
+    // Note блоки — в тій самій точці що й Delay
+    group.notes.forEach(note => {
       const gameNote = getGameNote(note.midi);
-      const noteX = startX + blockIdx * spacingX;
+      const noteID = genID();
+      noteBindings.push({ noteID, delayID });
+
       lines.push('[BLOCK]');
-      lines.push('BlockID=' + noteDef.id);
+      lines.push('BlockID=' + noteID);
       lines.push('Name=Note');
-      lines.push('CFrame=' + cf(noteX, startY, startZ));
+      lines.push('CFrame=' + cfStr(pos.x, pos.y, pos.z));
       lines.push('SemitoneOffset=' + gameNote.semitone);
       lines.push('Anchored=true');
       lines.push('[/BLOCK]');
       lines.push('');
-      blockIdx++; defIdx++;
     });
   });
 
-  const delayDefs = blockDefs.filter(b => b.type === 'Delay');
+  // ── BINDINGS ──
 
+  // Перший Delay → Switch
   lines.push('[BINDING]');
-  lines.push('BlockID=' + delayDefs[0].id);
+  lines.push('BlockID=' + delayIDs[0]);
   lines.push('BindName=BindWait');
   lines.push('ActionName=');
   lines.push('ControllerID=' + switchID);
@@ -507,25 +576,26 @@ function generateBuildContent() {
   lines.push('[/BINDING]');
   lines.push('');
 
-  delayDefs.forEach((delayDef, i) => {
+  // Кожен наступний Delay → попередній Delay
+  delayIDs.forEach((id, i) => {
     if (i === 0) return;
-    const prevDelay = delayDefs[i - 1];
     lines.push('[BINDING]');
-    lines.push('BlockID=' + delayDef.id);
+    lines.push('BlockID=' + id);
     lines.push('BindName=BindWait');
     lines.push('ActionName=');
-    lines.push('ControllerID=' + prevDelay.id);
+    lines.push('ControllerID=' + delayIDs[i - 1]);
     lines.push('KeyCode=1007');
     lines.push('[/BINDING]');
     lines.push('');
   });
 
-  blockDefs.filter(b => b.type === 'Note').forEach(noteDef => {
+  // Кожна Note → свій Delay
+  noteBindings.forEach(({ noteID, delayID }) => {
     lines.push('[BINDING]');
-    lines.push('BlockID=' + noteDef.id);
+    lines.push('BlockID=' + noteID);
     lines.push('BindName=BindFire');
     lines.push('ActionName=Activate');
-    lines.push('ControllerID=' + noteDef.delayID);
+    lines.push('ControllerID=' + delayID);
     lines.push('KeyCode=1007');
     lines.push('[/BINDING]');
     lines.push('');
@@ -536,11 +606,21 @@ function generateBuildContent() {
 
 function updateBuildInfo() {
   if (!allGroups.length) return;
-  let noteCount = 0, delayCount = 0;
-  allGroups.forEach(g => { delayCount++; noteCount += g.notes.length; });
+  let noteCount = 0;
+  allGroups.forEach(g => noteCount += g.notes.length);
+  const delayCount = allGroups.length;
   const total = noteCount + delayCount + 1;
+
+  let warning = '';
+  if (currentZoneKey) {
+    const { maxSlots } = getZoneGrid();
+    if (delayCount > maxSlots) {
+      warning = ` <span style="color:var(--danger)">⚠ Song has ${delayCount} groups but zone fits ${maxSlots}! Increase spacing or choose shorter song.</span>`;
+    }
+  }
+
   document.getElementById('buildInfo').innerHTML =
-    `Will generate <strong>${total}</strong> blocks: <strong>1</strong> Switch + <strong>${delayCount}</strong> Delay + <strong>${noteCount}</strong> Note`;
+    `Will generate <strong>${total}</strong> blocks: <strong>1</strong> Switch + <strong>${delayCount}</strong> Delay + <strong>${noteCount}</strong> Note` + warning;
 }
 
 function togglePreview() {
@@ -549,15 +629,16 @@ function togglePreview() {
   if (prev.classList.contains('show')) {
     prev.classList.remove('show');
   } else {
+    if (!currentZoneKey) { alert('Select a zone first!'); return; }
     const content = generateBuildContent();
     const lines = content.split('\n');
-    const preview = lines.slice(0, 80).join('\n') + (lines.length > 80 ? '\n...' : '');
-    txt.textContent = preview;
+    txt.textContent = lines.slice(0, 80).join('\n') + (lines.length > 80 ? '\n...' : '');
     prev.classList.add('show');
   }
 }
 
 function downloadBuildFile() {
+  if (!currentZoneKey) { alert('Select a zone first!'); return; }
   const content = generateBuildContent();
   const blob = new Blob([content], { type: 'text/plain' });
   const a = document.createElement('a');
@@ -567,26 +648,21 @@ function downloadBuildFile() {
   URL.revokeObjectURL(a.href);
 }
 
+// ── SVG schema ────────────────────────────────────────────────
 function renderPage(page) {
   currentPage = page;
   const totalPages = Math.ceil(allGroups.length / PAGE_SIZE);
   const startGi = (page - 1) * PAGE_SIZE;
   const endGi   = Math.min(startGi + PAGE_SIZE, allGroups.length);
   const shown   = allGroups.slice(startGi, endGi);
-
   const rows = Math.ceil(shown.length / COLS_PER_ROW);
 
-  const SVG_NS  = 'http://www.w3.org/2000/svg';
-  const svg     = document.getElementById('schemaSvg');
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const svg    = document.getElementById('schemaSvg');
   svg.innerHTML = '';
 
-  const NOTE_SIZE  = 26;
-  const COL_W      = 72;
-  const ROW_H      = 180;
-  const PAD_L      = 60, PAD_T = 55;
-  const TIMER_R    = 20;
-  const LEVER_W    = 22, LEVER_H = 40;
-
+  const NOTE_SIZE = 26, COL_W = 72, ROW_H = 180;
+  const PAD_L = 60, PAD_T = 55, TIMER_R = 20;
   const svgW = PAD_L + Math.min(shown.length, COLS_PER_ROW) * COL_W + 40;
   const svgH = PAD_T + rows * ROW_H + 20;
 
@@ -597,37 +673,36 @@ function renderPage(page) {
   let pageConns = 0;
 
   function timerPos(localIdx) {
-    const row = Math.floor(localIdx / COLS_PER_ROW);
-    const col = localIdx % COLS_PER_ROW;
-    return { x: PAD_L + col * COL_W + 24, y: PAD_T + row * ROW_H + TIMER_R };
+    const r = Math.floor(localIdx / COLS_PER_ROW);
+    const c = localIdx % COLS_PER_ROW;
+    return { x: PAD_L + c * COL_W + 24, y: PAD_T + r * ROW_H + TIMER_R };
   }
 
   const t0 = timerPos(0);
 
   if (page === 1) {
-    const leverX = PAD_L - 42, leverY = PAD_T - 8;
-    svg.appendChild(el(SVG_NS, 'rect', { x: leverX, y: leverY, width: LEVER_W, height: LEVER_H, rx: 5, fill: '#555', stroke: '#888', 'stroke-width': 1.5 }));
-    const leverLbl = el(SVG_NS, 'text', { x: leverX + LEVER_W/2, y: leverY + LEVER_H + 16, 'text-anchor': 'middle', 'font-size': 11, fill: '#666' });
-    leverLbl.textContent = 'lever';
-    svg.appendChild(leverLbl);
-    svg.appendChild(el(SVG_NS, 'line', { x1: leverX + LEVER_W, y1: leverY + LEVER_H/2, x2: t0.x - TIMER_R, y2: t0.y, stroke: '#e24b4a', 'stroke-width': 2, 'stroke-dasharray': '5 3' }));
+    const lx = PAD_L - 42, ly = PAD_T - 8;
+    svg.appendChild(el(SVG_NS, 'rect', { x: lx, y: ly, width: 22, height: 40, rx: 5, fill: '#555', stroke: '#888', 'stroke-width': 1.5 }));
+    const lbl = el(SVG_NS, 'text', { x: lx + 11, y: ly + 56, 'text-anchor': 'middle', 'font-size': 11, fill: '#666' });
+    lbl.textContent = 'switch';
+    svg.appendChild(lbl);
+    svg.appendChild(el(SVG_NS, 'line', { x1: lx + 22, y1: ly + 20, x2: t0.x - TIMER_R, y2: t0.y, stroke: '#e24b4a', 'stroke-width': 2, 'stroke-dasharray': '5 3' }));
     pageConns++;
   }
 
   let prevPos = null;
 
   shown.forEach((group, localIdx) => {
-    const gi = startGi + localIdx;
+    const gi  = startGi + localIdx;
     const pos = timerPos(localIdx);
 
     let timeDiff;
     if (localIdx === 0 && page > 1) {
-      const prevGroup = allGroups[startGi - 1];
-      timeDiff = Math.max(0.05, Math.min(10, parseFloat((group.time - prevGroup.time).toFixed(2))));
+      timeDiff = Math.max(0.05, Math.min(10, parseFloat((group.time - allGroups[startGi - 1].time).toFixed(2))));
     } else if (localIdx === 0) {
       timeDiff = 0.1;
     } else {
-      timeDiff = Math.max(0.05, Math.min(10, parseFloat((group.time - shown[localIdx-1].time).toFixed(2))));
+      timeDiff = Math.max(0.05, Math.min(10, parseFloat((group.time - shown[localIdx - 1].time).toFixed(2))));
     }
 
     if (prevPos !== null) {
@@ -645,11 +720,11 @@ function renderPage(page) {
     }
 
     const timerG = el(SVG_NS, 'g', { style: 'cursor:pointer', 'data-gi': gi });
-    const isBuilt = !!builtState[gi];
-    const ringColor  = isBuilt ? '#1d9e75' : '#ef9f27';
-    const ringWidth  = isBuilt ? 3 : 2.5;
-    const bgFill     = isBuilt ? 'rgba(29,158,117,0.12)' : 'transparent';
-    const txtColor   = isBuilt ? '#1d9e75' : '#ef9f27';
+    const isBuilt   = !!builtState[gi];
+    const ringColor = isBuilt ? '#1d9e75' : '#ef9f27';
+    const ringWidth = isBuilt ? 3 : 2.5;
+    const bgFill    = isBuilt ? 'rgba(29,158,117,0.12)' : 'transparent';
+    const txtColor  = isBuilt ? '#1d9e75' : '#ef9f27';
 
     timerG.appendChild(el(SVG_NS, 'circle', { cx: pos.x, cy: pos.y, r: TIMER_R - 1, fill: bgFill, class: 'timer-bg' }));
     timerG.appendChild(el(SVG_NS, 'circle', { cx: pos.x, cy: pos.y, r: TIMER_R, fill: 'none', stroke: ringColor, 'stroke-width': ringWidth, class: 'timer-ring' }));
@@ -668,13 +743,12 @@ function renderPage(page) {
 
     timerG.addEventListener('click', function() {
       const gidx = parseInt(this.getAttribute('data-gi'));
-      const built = !!builtState[gidx];
-      builtState[gidx] = !built;
+      builtState[gidx] = !builtState[gidx];
       const ring  = this.querySelector('.timer-ring');
       const bg    = this.querySelector('.timer-bg');
       const txt   = this.querySelector('.timer-txt');
       const check = this.querySelector('.timer-check');
-      if (!built) {
+      if (builtState[gidx]) {
         ring.setAttribute('stroke', '#1d9e75'); ring.setAttribute('stroke-width', '3');
         bg.setAttribute('fill', 'rgba(29,158,117,0.12)');
         txt.setAttribute('fill', '#1d9e75'); check.style.display = '';
@@ -702,11 +776,10 @@ function renderPage(page) {
       const nx = pos.x + spreadX;
       const ny = pos.y + TIMER_R + 20 + row2 * (sz + 10);
 
-      svg.appendChild(el(SVG_NS, 'line', { x1: pos.x, y1: pos.y + TIMER_R, x2: nx, y2: ny - sz/2, stroke: '#e24b4a', 'stroke-width': 1.5, opacity: 0.7 }));
+      svg.appendChild(el(SVG_NS, 'line', { x1: pos.x, y1: pos.y + TIMER_R, x2: nx, y2: ny - sz / 2, stroke: '#e24b4a', 'stroke-width': 1.5, opacity: 0.7 }));
       pageConns++;
 
-      const strokeColor = gameNote.stroke !== 'none' ? gameNote.stroke : 'none';
-      const nCirc = el(SVG_NS, 'circle', { cx: nx, cy: ny, r: sz/2, fill: gameNote.color, stroke: strokeColor, 'stroke-width': gameNote.strokeW });
+      const nCirc = el(SVG_NS, 'circle', { cx: nx, cy: ny, r: sz / 2, fill: gameNote.color, stroke: gameNote.stroke !== 'none' ? gameNote.stroke : 'none', 'stroke-width': gameNote.strokeW });
       nCirc.setAttribute('data-info', `${gameNote.name} | MIDI ${note.midi} | semitone ${gameNote.semitone}`);
       nCirc.style.cursor = 'pointer';
       nCirc.addEventListener('mouseenter', showTooltip);
@@ -736,11 +809,11 @@ function updatePagination(page, totalPages, startGi, endGi) {
   document.getElementById('paginationTop').classList.add('show');
   document.getElementById('paginationBot').classList.add('show');
   const range = `${startGi + 1}–${endGi}`;
-  ['Top','Bot'].forEach(s => {
-    document.getElementById('pageNum'+s).textContent = page;
-    document.getElementById('pageTotal'+s).textContent = totalPages;
-    document.getElementById('pageRange'+s).textContent = range;
-    renderPageButtons(document.getElementById('pageBtns'+s), page, totalPages);
+  ['Top', 'Bot'].forEach(s => {
+    document.getElementById('pageNum' + s).textContent = page;
+    document.getElementById('pageTotal' + s).textContent = totalPages;
+    document.getElementById('pageRange' + s).textContent = range;
+    renderPageButtons(document.getElementById('pageBtns' + s), page, totalPages);
   });
 }
 
@@ -805,6 +878,7 @@ function buildColorRef() {
 function resetAll() {
   allGroups = [];
   window._midiData = null;
+  currentZoneKey = '';
   Object.keys(builtState).forEach(k => delete builtState[k]);
   document.getElementById('schemaSvg').style.display = 'none';
   document.getElementById('schemaSvg').innerHTML = '';
@@ -820,8 +894,11 @@ function resetAll() {
   document.getElementById('builtRow').style.display = 'none';
   document.getElementById('buildExport').classList.remove('show');
   document.getElementById('buildPreview').classList.remove('show');
-  const sel = document.getElementById('optTrack');
-  sel.innerHTML = '<option value="all">All tracks merged</option>';
+  document.getElementById('gridInfo').classList.remove('show');
+  document.getElementById('btnDownload').disabled = true;
+  document.getElementById('zoneHint').style.display = 'block';
+  document.getElementById('optZone').value = '';
+  document.getElementById('optTrack').innerHTML = '<option value="all">All tracks merged</option>';
 }
 
 function downloadSVG() {
